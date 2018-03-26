@@ -63,7 +63,7 @@ public enum NetworkCreatorUtils {
                     if (planElement instanceof Activity) {
                         Activity activity = (Activity) planElement;
 
-                        if (stageActivityTypes.isStageActivity(activity.getType())) {
+                        if (!stageActivityTypes.isStageActivity(activity.getType())) {
                             Link link = network.getLinks().getOrDefault(activity.getLinkId(), null);
 
                             if (link != null) {
