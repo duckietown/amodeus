@@ -3,14 +3,25 @@ package ch.ethz.idsc.amodeus.matsim;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.matsim.api.core.v01.Coord;
+import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.events.LinkEnterEvent;
+import org.matsim.api.core.v01.events.handler.LinkEnterEventHandler;
 import org.matsim.api.core.v01.network.Link;
+import org.matsim.api.core.v01.network.Network;
+import org.matsim.api.core.v01.network.NetworkFactory;
+import org.matsim.api.core.v01.network.Node;
+import org.matsim.api.core.v01.population.Activity;
+import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Plan;
 import org.matsim.contrib.dvrp.run.DvrpConfigGroup;
 import org.matsim.contrib.dvrp.trafficmonitoring.DvrpTravelTimeModule;
 import org.matsim.core.config.Config;
@@ -18,9 +29,11 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.PlanCalcScoreConfigGroup;
 import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
+import org.matsim.core.population.PopulationUtils;
 
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 
 import ch.ethz.idsc.amodeus.matsim.mod.AmodeusDispatcherModule;
 import ch.ethz.idsc.amodeus.matsim.mod.AmodeusModule;
@@ -54,6 +67,45 @@ public class StandardMATSimScenarioTest {
         this.dispatcher = dispatcher;
     }
 
+    private void makeMultimodal(Scenario scenario) {
+        // Add pt-links to the network to test a multimodal network as it appears in standard MATSim use cases
+
+        Network network = scenario.getNetwork();
+        NetworkFactory factory = network.getFactory();
+
+        // Let's build a fast track through the scenario
+        for (int i = 0; i < 9; i++) {
+            Id<Link> ptFowardLinkId = Id.createLinkId(String.format("pt_fwd_%d:%d", i, i));
+            Id<Link> ptBackwardLinkId = Id.createLinkId(String.format("pt_bck_%d:%d", i, i));
+            Id<Node> fromNodeId = Id.createNodeId(String.format("%d:%d", i, i));
+            Id<Node> toNodeId = Id.createNodeId(String.format("%d:%d", i + 1, i + 1));
+
+            Link ptFowardLink = factory.createLink(ptFowardLinkId, network.getNodes().get(fromNodeId), network.getNodes().get(toNodeId));
+            ptFowardLink.setFreespeed(100.0 * 1000.0 / 3600.0);
+            ptFowardLink.setLength(1000.0);
+            ptFowardLink.setAllowedModes(Collections.singleton("pt"));
+            network.addLink(ptFowardLink);
+
+            Link ptBackwardLink = factory.createLink(ptBackwardLinkId, network.getNodes().get(toNodeId), network.getNodes().get(fromNodeId));
+            ptBackwardLink.setFreespeed(100.0 * 1000.0 / 3600.0);
+            ptBackwardLink.setLength(1000.0);
+            ptBackwardLink.setAllowedModes(Collections.singleton("pt"));
+            network.addLink(ptBackwardLink);
+        }
+
+        // Also, a routed population may have "pt interaction" activities, which take place at links that are not part of the road network. Amodeus must be able to
+        // handle these cases.
+
+        for (Person person : scenario.getPopulation().getPersons().values()) {
+            for (Plan plan : person.getPlans()) {
+                Activity trickyActivity = PopulationUtils.createActivityFromCoordAndLinkId("pt interaction", new Coord(5500.0, 5500.0), Id.createLinkId("pt_fwd_5:5"));
+
+                plan.getPlanElements().add(PopulationUtils.createLeg("walk"));
+                plan.getPlanElements().add(trickyActivity);
+            }
+        }
+    }
+
     @Test
     public void testStandardMATSimScenario() {
         /* This test runs a small test scenario with the different dispatchers and makes
@@ -74,6 +126,9 @@ public class StandardMATSimScenarioTest {
         controler.addOverridingModule(new AmodeusModule());
         controler.addOverridingModule(new AmodeusDispatcherModule());
 
+        // Make the scenario multimodal
+        makeMultimodal(scenario);
+
         // Set up a virtual network for the LPFBDispatcher
 
         controler.addOverridingModule(new AbstractModule() {
@@ -84,11 +139,11 @@ public class StandardMATSimScenarioTest {
 
             @Provides
             @Singleton
-            public VirtualNetwork<Link> provideVirtualNetwork() {
+            public VirtualNetwork<Link> provideVirtualNetwork(@Named(AVModule.AV_MODE) Network network) {
                 // Since we have no virtual netowrk saved in the working directory for our test
                 // sceanario, we need to provide a custom one for the LPFB dispatcher
 
-                return MatsimKMEANSVirtualNetworkCreator.createVirtualNetwork(scenario.getPopulation(), scenario.getNetwork(), 2, true);
+                return MatsimKMEANSVirtualNetworkCreator.createVirtualNetwork(scenario.getPopulation(), network, 4, true);
             }
         });
 
@@ -96,6 +151,7 @@ public class StandardMATSimScenarioTest {
 
         AVConfig avConfig = new AVConfig();
         AVOperatorConfig operatorConfig = avConfig.createOperatorConfig("test");
+        operatorConfig.createPriceStructureConfig();
         AVGeneratorConfig generatorConfig = operatorConfig.createGeneratorConfig("PopulationDensity");
         generatorConfig.setNumberOfVehicles(100);
 
@@ -116,6 +172,22 @@ public class StandardMATSimScenarioTest {
 
         TestScenarioAnalyzer analyzer = new TestScenarioAnalyzer();
         controler.addOverridingModule(analyzer);
+
+        controler.addOverridingModule(new AbstractModule() {
+            @Override
+            public void install() {
+                addEventHandlerBinding().toInstance(new LinkEnterEventHandler() {
+                    @Override
+                    public void handleEvent(LinkEnterEvent event) {
+                        // Fail if an AV attempts to enter a pt link
+
+                        if (event.getVehicleId().toString().startsWith("av_") && event.getLinkId().toString().startsWith("pt")) {
+                            Assert.fail("AV attempted to enter PT link");
+                        }
+                    }
+                });
+            }
+        });
 
         controler.run();
         Assert.assertEquals(0, analyzer.numberOfDepartures - analyzer.numberOfArrivals);

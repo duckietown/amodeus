@@ -22,9 +22,9 @@ import com.google.inject.name.Names;
 import ch.ethz.idsc.amodeus.analysis.Analysis;
 import ch.ethz.idsc.amodeus.data.LocationSpec;
 import ch.ethz.idsc.amodeus.data.ReferenceFrame;
-import ch.ethz.idsc.amodeus.matsim.mod.AmodeusModule;
 import ch.ethz.idsc.amodeus.matsim.mod.AmodeusDispatcherModule;
 import ch.ethz.idsc.amodeus.matsim.mod.AmodeusGeneratorModule;
+import ch.ethz.idsc.amodeus.matsim.mod.AmodeusModule;
 import ch.ethz.idsc.amodeus.net.DatabaseModule;
 import ch.ethz.idsc.amodeus.net.MatsimStaticDatabase;
 import ch.ethz.idsc.amodeus.net.SimulationServer;
@@ -111,13 +111,18 @@ public class TestServer {
         controler.addOverridingModule(new DatabaseModule());
         controler.addOverridingModule(new AmodeusGeneratorModule());
         controler.addOverridingModule(new AmodeusDispatcherModule());
+        controler.addOverridingModule(new AmodeusModule());
         controler.addOverridingModule(new AbstractModule() {
             @Override
             public void install() {
+                /* We do this here to MAKE the ScenarioPipeLineTest use a full network.
+                 * The reason is that there are agents in the test scenario that start and
+                 * end trips on non-"car" links. So if we provide a reduced car-network here,
+                 * there would be some null exceptions in the simulation. Eventually, we should
+                 * be able to handle a multimodal situation here as well. /shoerl, mar18 */
                 bind(Key.get(Network.class, Names.named("dvrp_routing"))).to(Network.class);
             }
         });
-        controler.addOverridingModule(new AmodeusModule());
 
         controler.addOverridingModule(new AbstractModule() {
             @Override

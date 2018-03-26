@@ -29,6 +29,8 @@ public interface VirtualNetwork<T> {
     /** @param element {@link T} of VirtualNetwork
      * @return {@link VirtualNode } that @param element belongs to */
     VirtualNode<T> getVirtualNode(T element);
+    
+    boolean hasVirtualNode(T element);
 
     /** @param index
      * @return {@link VirtualLink} with index @param index */

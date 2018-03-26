@@ -12,6 +12,9 @@ import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.api.core.v01.population.Population;
+import org.matsim.core.router.StageActivityTypes;
+import org.matsim.core.router.StageActivityTypesImpl;
+import org.matsim.pt.PtConstants;
 
 import ch.ethz.idsc.tensor.Tensor;
 import ch.ethz.idsc.tensor.Tensors;
@@ -52,13 +55,23 @@ public enum NetworkCreatorUtils {
         // FOR ALL activities find positions, record in list and store in array
         List<double[]> dataList = new ArrayList<>();
 
+        StageActivityTypes stageActivityTypes = new StageActivityTypesImpl(PtConstants.TRANSIT_ACTIVITY_TYPE);
+
         for (Person person : population.getPersons().values()) {
             for (Plan plan : person.getPlans()) {
-                for (PlanElement planElem : plan.getPlanElements()) {
-                    if (planElem instanceof Activity) {
-                        double x = network.getLinks().get(((Activity) planElem).getLinkId()).getCoord().getX();
-                        double y = network.getLinks().get(((Activity) planElem).getLinkId()).getCoord().getY();
-                        dataList.add(new double[] { x, y });
+                for (PlanElement planElement : plan.getPlanElements()) {
+                    if (planElement instanceof Activity) {
+                        Activity activity = (Activity) planElement;
+
+                        if (stageActivityTypes.isStageActivity(activity.getType())) {
+                            Link link = network.getLinks().getOrDefault(activity.getLinkId(), null);
+
+                            if (link != null) {
+                                double x = link.getCoord().getX();
+                                double y = link.getCoord().getY();
+                                dataList.add(new double[] { x, y });
+                            }
+                        }
                     }
                 }
             }

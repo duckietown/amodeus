@@ -12,7 +12,7 @@ public enum VirtualNetworkCreators {
     SHAPEFILENETWORK {
         @Override
         public VirtualNetwork<Link> create(Network network, Population population, ScenarioOptions scenarioOptions) {
-            return MatsimShapeFileVirtualNetworkCreator.creatVirtualNetwork(network, scenarioOptions);
+            return MatsimShapeFileVirtualNetworkCreator.creatVirtualNetwork(network, scenarioOptions.getShapeFile(), scenarioOptions.isCompleteGraph());
         }
     },
     KMEANS {

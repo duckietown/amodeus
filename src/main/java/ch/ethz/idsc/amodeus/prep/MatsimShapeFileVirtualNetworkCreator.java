@@ -23,9 +23,7 @@ import ch.ethz.idsc.tensor.Tensor;
 public enum MatsimShapeFileVirtualNetworkCreator {
     ;
 
-    public static VirtualNetwork<Link> creatVirtualNetwork(Network network, ScenarioOptions scenarioOptions) {
-        File shapeFile = scenarioOptions.getShapeFile();
-        boolean completeGraph = scenarioOptions.isCompleteGraph();
+    public static VirtualNetwork<Link> creatVirtualNetwork(Network network, File shapeFile, boolean completeGraph) {
         GlobalAssert.that(shapeFile.exists());
         MultiPolygons multiPolygons = null;
         try {

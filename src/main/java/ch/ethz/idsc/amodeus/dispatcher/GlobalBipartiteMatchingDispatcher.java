@@ -11,6 +11,8 @@ import com.google.inject.name.Named;
 
 import ch.ethz.idsc.amodeus.dispatcher.core.UniversalDispatcher;
 import ch.ethz.idsc.amodeus.dispatcher.util.BipartiteMatchingUtils;
+import ch.ethz.idsc.amodeus.dispatcher.util.DistanceFunction;
+import ch.ethz.idsc.amodeus.dispatcher.util.EuclideanDistanceFunction;
 import ch.ethz.idsc.amodeus.dispatcher.util.NetworkDistanceFunction;
 import ch.ethz.idsc.amodeus.matsim.SafeConfig;
 import ch.ethz.idsc.tensor.Tensor;
@@ -27,7 +29,7 @@ public class GlobalBipartiteMatchingDispatcher extends UniversalDispatcher {
 
     private final int dispatchPeriod;
     private Tensor printVals = Tensors.empty();
-    private final NetworkDistanceFunction ndf;
+    private final DistanceFunction distanceFunction;
     private final Network network;
 
     private GlobalBipartiteMatchingDispatcher( //
@@ -36,11 +38,12 @@ public class GlobalBipartiteMatchingDispatcher extends UniversalDispatcher {
             AVDispatcherConfig avDispatcherConfig, //
             TravelTime travelTime, //
             ParallelLeastCostPathCalculator parallelLeastCostPathCalculator, //
-            EventsManager eventsManager) {
+            EventsManager eventsManager, //
+            DistanceFunction distanceFunction) {
         super(config, avDispatcherConfig, travelTime, parallelLeastCostPathCalculator, eventsManager);
         SafeConfig safeConfig = SafeConfig.wrap(avDispatcherConfig);
         dispatchPeriod = safeConfig.getInteger("dispatchPeriod", 30);
-        this.ndf = new NetworkDistanceFunction(network);
+        this.distanceFunction = distanceFunction;
         this.network = network;
     }
 
@@ -52,7 +55,7 @@ public class GlobalBipartiteMatchingDispatcher extends UniversalDispatcher {
             printVals = BipartiteMatchingUtils.executePickup(this::setRoboTaxiPickup, //
                     getDivertableRoboTaxis(), getAVRequests(), //
                     // new EuclideanDistanceFunction(), network, false);
-                    ndf, network, false);
+                    distanceFunction, network, false);
         }
 
     }
@@ -83,11 +86,14 @@ public class GlobalBipartiteMatchingDispatcher extends UniversalDispatcher {
 
         @Inject
         private Config config;
+        
+        @Inject
+        private DistanceFunction distanceFunction;
 
         @Override
         public AVDispatcher createDispatcher(AVDispatcherConfig avconfig) {
             return new GlobalBipartiteMatchingDispatcher( //
-                    network, config, avconfig, travelTime, router, eventsManager);
+                    network, config, avconfig, travelTime, router, eventsManager, distanceFunction);
         }
     }
 }
