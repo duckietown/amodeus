@@ -34,7 +34,7 @@ public enum TravelDataIO {
      * @throws ClassNotFoundException
      * @throws DataFormatException
      * @throws IOException */
-    /* package */ static TravelData read(File file, VirtualNetwork<Link> virtualNetwork) //
+    public static TravelData read(File file, VirtualNetwork<Link> virtualNetwork) //
             throws ClassNotFoundException, DataFormatException, IOException {
         GlobalAssert.that(Objects.nonNull(virtualNetwork));
         TravelData travelData = Import.object(file);

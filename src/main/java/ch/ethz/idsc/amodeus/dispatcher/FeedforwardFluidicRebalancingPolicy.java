@@ -82,7 +82,7 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
         rebalanceCountInteger = Array.zeros(nVNodes, nVNodes);
         SafeConfig safeConfig = SafeConfig.wrap(avconfig);
         dispatchPeriod = safeConfig.getInteger("dispatchPeriod", 30);
-        rebalancingPeriod = safeConfig.getInteger("rebalancingPeriod", 30);
+        rebalancingPeriod = safeConfig.getInteger("rebalancingPeriod", 300);
     }
 
     @Override
