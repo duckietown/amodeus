@@ -41,6 +41,7 @@ import ch.ethz.idsc.amodeus.matsim.mod.AmodeusDispatcherModule;
 import ch.ethz.idsc.amodeus.matsim.mod.AmodeusModule;
 import ch.ethz.idsc.amodeus.prep.MatsimKMEANSVirtualNetworkCreator;
 import ch.ethz.idsc.amodeus.traveldata.TravelData;
+import ch.ethz.idsc.amodeus.traveldata.TravelDataItem;
 import ch.ethz.idsc.amodeus.virtualnetwork.VirtualNetwork;
 import ch.ethz.matsim.av.config.AVConfig;
 import ch.ethz.matsim.av.config.AVDispatcherConfig;
@@ -157,7 +158,7 @@ public class StandardMATSimScenarioTest {
                 // Same as for the virtual network: For the LPFF dispatcher we need travel 
                 // data, which we generate on the fly here.
                 
-                TravelData travelData = new TravelData(virtualNetwork, network, population, 300);
+                TravelData travelData = new TravelData(virtualNetwork, network, TravelDataItem.createFromPopulation(population, network), 300);
                 return travelData;
             }
         });

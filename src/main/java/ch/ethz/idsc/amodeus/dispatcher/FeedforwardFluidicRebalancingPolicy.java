@@ -22,7 +22,7 @@ import ch.ethz.idsc.amodeus.dispatcher.util.FeasibleRebalanceCreator;
 import ch.ethz.idsc.amodeus.dispatcher.util.HungarBiPartVehicleDestMatcher;
 import ch.ethz.idsc.amodeus.dispatcher.util.RandomVirtualNodeDest;
 import ch.ethz.idsc.amodeus.matsim.SafeConfig;
-import ch.ethz.idsc.amodeus.traveldata.TravelData;
+import ch.ethz.idsc.amodeus.traveldata.TravelDataListener;
 import ch.ethz.idsc.amodeus.util.math.GlobalAssert;
 import ch.ethz.idsc.amodeus.virtualnetwork.VirtualLink;
 import ch.ethz.idsc.amodeus.virtualnetwork.VirtualNetwork;
@@ -54,7 +54,7 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
     private final int nVLinks;
     private final Network network;
     Tensor printVals = Tensors.empty();
-    TravelData travelData;
+    TravelDataListener travelDataListener;
     Tensor rebalancingRate;
     Tensor rebalanceCount;
     Tensor rebalanceCountInteger;
@@ -70,11 +70,10 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
             VirtualNetwork<Link> virtualNetwork, //
             AbstractVirtualNodeDest abstractVirtualNodeDest, //
             AbstractVehicleDestMatcher abstractVehicleDestMatcher, //
-            TravelData travelData) {
+            TravelDataListener travelDataListener) {
         super(config, avconfig, travelTime, router, eventsManager, virtualNetwork);
         virtualNodeDest = abstractVirtualNodeDest;
         vehicleDestMatcher = abstractVehicleDestMatcher;
-        this.travelData = travelData;
         this.network = network;
         nVNodes = virtualNetwork.getvNodesCount();
         nVLinks = virtualNetwork.getvLinksCount();
@@ -83,6 +82,7 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
         SafeConfig safeConfig = SafeConfig.wrap(avconfig);
         dispatchPeriod = safeConfig.getInteger("dispatchPeriod", 30);
         rebalancingPeriod = safeConfig.getInteger("rebalancingPeriod", 300);
+        this.travelDataListener = travelDataListener;
     }
 
     @Override
@@ -92,7 +92,7 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
         // Part I: permanently rebalance vehicles according to the rates output
         // by the LP
         if (round_now % rebalancingPeriod == 0) {
-            rebalancingRate = travelData.getAlphaijPSFforTime((int) round_now);
+            rebalancingRate = travelDataListener.getTravelData().getAlphaijPSFforTime((int) round_now);
 
             // update rebalance count using current rate
             rebalanceCount = rebalanceCount.add(rebalancingRate.multiply(RealScalar.of(rebalancingPeriod)));
@@ -103,7 +103,7 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
             Map<VirtualNode<Link>, List<RoboTaxi>> availableVehicles = getVirtualNodeDivertableNotRebalancingRoboTaxis();
             Tensor feasibleRebalanceCount = FeasibleRebalanceCreator.returnFeasibleRebalance(rebalanceCountInteger.unmodifiable(), availableVehicles);
             total_rebalanceCount += (Integer) ((Scalar) Total.of(Tensor.of(feasibleRebalanceCount.flatten(-1)))).number();
-
+            
             // generate routing instructions for rebalancing vehicles
             Map<VirtualNode<Link>, List<Link>> destinationLinks = virtualNetwork.createVNodeTypeMap();
 
@@ -170,7 +170,7 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
         private VirtualNetwork<Link> virtualNetwork;
 
         @Inject(optional = true)
-        private TravelData travelData;
+        private TravelDataListener travelDataListener;
 
         @Inject
         private Config config;
@@ -183,7 +183,7 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
             AbstractVehicleDestMatcher abstractVehicleDestMatcher = new HungarBiPartVehicleDestMatcher(new EuclideanDistanceFunction());
 
             return new FeedforwardFluidicRebalancingPolicy(config, avconfig, generatorConfig, travelTime, router, eventsManager, network, virtualNetwork, abstractVirtualNodeDest,
-                    abstractVehicleDestMatcher, travelData);
+                    abstractVehicleDestMatcher, travelDataListener);
         }
     }
 }

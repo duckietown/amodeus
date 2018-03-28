@@ -106,7 +106,7 @@ public class AdaptiveRealTimeRebalancingPolicy extends PartitionedDispatcher {
                 for (List<RoboTaxi> robotaxiList : availableVehicles.values()) {
                     totalAvailable += robotaxiList.size();
                 }
-
+                
                 // calculate desired vehicles per vNode
                 int num_requests = requests.values().stream().mapToInt(List::size).sum();
                 double vi_desired_num = ((numRobotaxi - num_requests) / (double) virtualNetwork.getvNodesCount());

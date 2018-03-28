@@ -11,6 +11,7 @@ import org.matsim.api.core.v01.population.Population;
 import ch.ethz.idsc.amodeus.options.ScenarioOptions;
 import ch.ethz.idsc.amodeus.traveldata.TravelData;
 import ch.ethz.idsc.amodeus.traveldata.TravelDataIO;
+import ch.ethz.idsc.amodeus.traveldata.TravelDataItem;
 import ch.ethz.idsc.amodeus.util.io.MultiFileTools;
 import ch.ethz.idsc.amodeus.util.math.GlobalAssert;
 import ch.ethz.idsc.amodeus.virtualnetwork.VirtualNetwork;
@@ -34,7 +35,7 @@ public enum VirtualNetworkPreparer {
         System.out.println("saved virtual network byte format to : " + new File(vnDir, scenOptions.getVirtualNetworkName()));
 
         // generate travelData
-        TravelData travelData = new TravelData(virtualNetwork, network, population, scenOptions.getdtTravelData());
+        TravelData travelData = new TravelData(virtualNetwork, network, TravelDataItem.createFromPopulation(population, network), scenOptions.getdtTravelData());
         TravelDataIO.write(new File(vnDir, scenOptions.getTravelDataName()), travelData);
         System.out.println("saved travelData byte format to : " + new File(vnDir, scenOptions.getTravelDataName()));
 
