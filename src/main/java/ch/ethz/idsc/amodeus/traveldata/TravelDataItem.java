@@ -16,12 +16,14 @@ import org.matsim.core.router.TripStructureUtils;
 import org.matsim.core.router.TripStructureUtils.Trip;
 import org.matsim.pt.PtConstants;
 
+import ch.ethz.idsc.amodeus.virtualnetwork.VirtualNetwork;
+
 public class TravelDataItem {
     public double time;
     public Link startLink;
     public Link endLink;
 
-    static public Collection<TravelDataItem> createFromPopulation(Population population, Network network) {
+    static public Collection<TravelDataItem> createFromPopulation(VirtualNetwork<Link> virtualNetwork, Population population, Network network) {
         StageActivityTypes stageActivityTypes = new StageActivityTypesImpl(PtConstants.TRANSIT_ACTIVITY_TYPE);
         MainModeIdentifier mainModeIdentifier = new MainModeIdentifierImpl();
 
@@ -38,7 +40,10 @@ public class TravelDataItem {
                     item.time = trip.getOriginActivity().getEndTime();
                     item.startLink = network.getLinks().get(trip.getOriginActivity().getLinkId());
                     item.endLink = network.getLinks().get(trip.getDestinationActivity().getLinkId());
-                    items.add(item);
+
+                    if (virtualNetwork.hasVirtualNode(item.startLink) && virtualNetwork.hasVirtualNode(item.endLink)) {
+                        items.add(item);
+                    }
                 }
             }
         }

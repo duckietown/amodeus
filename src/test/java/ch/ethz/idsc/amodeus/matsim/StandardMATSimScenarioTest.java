@@ -158,7 +158,7 @@ public class StandardMATSimScenarioTest {
                 // Same as for the virtual network: For the LPFF dispatcher we need travel 
                 // data, which we generate on the fly here.
                 
-                TravelData travelData = new TravelData(virtualNetwork, network, TravelDataItem.createFromPopulation(population, network), 300);
+                TravelData travelData = new TravelData(virtualNetwork, network, TravelDataItem.createFromPopulation(virtualNetwork, population, network), 300);
                 return travelData;
             }
         });

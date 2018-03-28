@@ -3,6 +3,7 @@ package ch.ethz.idsc.amodeus.dispatcher.core;
 
 import java.util.Objects;
 
+import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.contrib.dvrp.data.Vehicle;
@@ -13,6 +14,7 @@ import org.matsim.contrib.dvrp.util.LinkTimePair;
 import ch.ethz.idsc.amodeus.util.math.GlobalAssert;
 import ch.ethz.matsim.av.data.AVVehicle;
 import ch.ethz.matsim.av.schedule.AVDriveTask;
+import ch.ethz.matsim.av.schedule.AVStayTask;
 
 /** RoboTaxi is central classs to be used in all dispatchers. Dispatchers control
  * a fleet of RoboTaxis, each is uniquely associated to an AVVehicle object in
@@ -150,6 +152,9 @@ public class RoboTaxi {
         return false;
     }
 
+    static private final Logger logger = Logger.getLogger(RoboTaxi.class);
+    static private int countError = 0;
+
     /** @return true if robotaxi is not driving on the last link of its drive task,
      *         used for filtering purposes as currently the roboTaxis cannot be rerouted
      *         when driving on the last link of their route */
@@ -158,7 +163,19 @@ public class RoboTaxi {
             return true;
         }
         Task avT = getSchedule().getCurrentTask();
+
+        if (avT instanceof AVStayTask) {
+            if (countError++ < 100) {
+                logger.info("Fixing? " + avT.getClass().toString() + " " + status.toString());
+            }
+            
+            return true;
+        } else if (!(avT instanceof AVDriveTask)) {
+            logger.info("Invalid state: " + avT.getClass().toString());
+        }
+        
         GlobalAssert.that(avT instanceof AVDriveTask);
+
         AVDriveTask avDT = (AVDriveTask) avT;
         if (avDT.getPath().getLinkCount() == 1) {
             return false;

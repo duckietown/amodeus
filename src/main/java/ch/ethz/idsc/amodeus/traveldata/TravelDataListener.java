@@ -49,7 +49,10 @@ public class TravelDataListener implements PersonDepartureEventHandler, PersonAr
 
         if (item != null) {
             item.endLink = network.getLinks().get(event.getLinkId());
-            data.add(item);
+
+            if (virtualNetwork.hasVirtualNode(item.startLink) && virtualNetwork.hasVirtualNode(item.endLink)) {
+                data.add(item);
+            }
         }
     }
 

@@ -35,7 +35,7 @@ public enum VirtualNetworkPreparer {
         System.out.println("saved virtual network byte format to : " + new File(vnDir, scenOptions.getVirtualNetworkName()));
 
         // generate travelData
-        TravelData travelData = new TravelData(virtualNetwork, network, TravelDataItem.createFromPopulation(population, network), scenOptions.getdtTravelData());
+        TravelData travelData = new TravelData(virtualNetwork, network, TravelDataItem.createFromPopulation(virtualNetwork, population, network), scenOptions.getdtTravelData());
         TravelDataIO.write(new File(vnDir, scenOptions.getTravelDataName()), travelData);
         System.out.println("saved travelData byte format to : " + new File(vnDir, scenOptions.getTravelDataName()));
 
