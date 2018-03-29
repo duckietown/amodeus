@@ -3,7 +3,6 @@ package ch.ethz.idsc.amodeus.dispatcher.util;
 
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.core.router.FastAStarEuclideanFactory;
-import org.matsim.core.router.FastAStarLandmarksFactory;
 import org.matsim.core.router.FastDijkstraFactory;
 
 public enum DistanceHeuristics {
@@ -28,7 +27,7 @@ public enum DistanceHeuristics {
     ASTARLANDMARKS {
         @Override
         public DistanceFunction getDistanceFunction(Network network) {
-            return new NetworkDistanceFunction(network, new FastAStarLandmarksFactory());
+            return new NetworkDistanceFunction(network, new AStarLandmarksFactory(30, 1.0));
         }
     };
 
