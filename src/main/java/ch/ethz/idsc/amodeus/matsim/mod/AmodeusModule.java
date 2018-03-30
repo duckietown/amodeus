@@ -51,10 +51,4 @@ public class AmodeusModule extends AbstractModule {
 
         return filtered;
     }
-
-    @Provides
-    @Singleton
-    public DistanceFunction provideDistanceFunction() {
-        return new EuclideanDistanceFunction();
-    }
 }

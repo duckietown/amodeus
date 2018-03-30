@@ -56,7 +56,6 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
     private final int nVLinks;
     private final Network network;
     private final DistanceFunction distanceFunction;
-    private final DistanceHeuristics distanceHeuristics;
     Tensor printVals = Tensors.empty();
     TravelDataListener travelDataListener;
     Tensor rebalancingRate;
@@ -74,7 +73,8 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
             VirtualNetwork<Link> virtualNetwork, //
             AbstractVirtualNodeDest abstractVirtualNodeDest, //
             AbstractVehicleDestMatcher abstractVehicleDestMatcher, //
-            TravelDataListener travelDataListener) {
+            TravelDataListener travelDataListener,
+            DistanceFunction distanceFunction) {
         super(config, avconfig, travelTime, router, eventsManager, virtualNetwork);
         virtualNodeDest = abstractVirtualNodeDest;
         vehicleDestMatcher = abstractVehicleDestMatcher;
@@ -87,9 +87,7 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
         dispatchPeriod = safeConfig.getInteger("dispatchPeriod", 30);
         rebalancingPeriod = safeConfig.getInteger("rebalancingPeriod", 300);
         this.travelDataListener = travelDataListener;
-        distanceHeuristics = DistanceHeuristics.valueOf(safeConfig.getStringStrict("distanceHeuristics").toUpperCase());
-        System.out.println("Using DistanceHeuristics: " + distanceHeuristics.name());
-        this.distanceFunction = distanceHeuristics.getDistanceFunction(network);
+        this.distanceFunction = distanceFunction;
     }
 
     @Override
@@ -181,6 +179,9 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
 
         @Inject
         private Config config;
+        
+        @Inject
+        private DistanceFunction distanceFunction;
 
         @Override
         public AVDispatcher createDispatcher(AVDispatcherConfig avconfig) {
@@ -190,7 +191,7 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
             AbstractVehicleDestMatcher abstractVehicleDestMatcher = new HungarBiPartVehicleDestMatcher(new EuclideanDistanceFunction());
 
             return new FeedforwardFluidicRebalancingPolicy(config, avconfig, generatorConfig, travelTime, router, eventsManager, network, virtualNetwork, abstractVirtualNodeDest,
-                    abstractVehicleDestMatcher, travelDataListener);
+                    abstractVehicleDestMatcher, travelDataListener, distanceFunction);
         }
     }
 }

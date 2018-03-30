@@ -4,9 +4,12 @@ package ch.ethz.idsc.amodeus.dispatcher.util;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.matsim.api.core.v01.network.Link;
 
 import ch.ethz.idsc.amodeus.dispatcher.core.RoboTaxi;
@@ -53,12 +56,27 @@ public class HungarBiPartVehicleDestMatcher extends AbstractVehicleDestMatcher {
 
         final double[][] distancematrix = new double[n][m];
 
+        List<Pair<RoboTaxi, Link>> pairs = new LinkedList<>();
+
         int i = -1;
         for (RoboTaxi roboTaxi : orderedRoboTaxis) {
             ++i;
             int j = -1;
             for (MatchLinkObject<T> linkObj : ordered_linkObjects) {
-                distancematrix[i][++j] = distancer.getDistance(roboTaxi, linkObj.getLink());
+                pairs.add(Pair.of(roboTaxi, linkObj.getLink()));
+                // distancematrix[i][++j] = distancer.getDistance(roboTaxi, linkObj.getLink());
+            }
+        }
+
+        List<Double> distances = distancer.getDistances(pairs);
+        Iterator<Double> distanceIterator = distances.iterator();
+
+        i = -1;
+        for (RoboTaxi roboTaxi : orderedRoboTaxis) {
+            ++i;
+            int j = -1;
+            for (MatchLinkObject<T> linkObj : ordered_linkObjects) {
+                distancematrix[i][++j] = distanceIterator.next();
             }
         }
 

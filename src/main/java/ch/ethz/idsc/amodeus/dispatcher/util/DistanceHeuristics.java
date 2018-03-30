@@ -5,6 +5,9 @@ import org.matsim.api.core.v01.network.Network;
 import org.matsim.core.router.FastAStarEuclideanFactory;
 import org.matsim.core.router.FastDijkstraFactory;
 
+import ch.ethz.matsim.av.plcpc.DefaultParallelLeastCostPathCalculator;
+import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
+
 public enum DistanceHeuristics {
     EUCLIDEAN {
         @Override
@@ -27,7 +30,7 @@ public enum DistanceHeuristics {
     ASTARLANDMARKS {
         @Override
         public DistanceFunction getDistanceFunction(Network network) {
-            return new NetworkDistanceFunction(network, new AStarLandmarksFactory(30, 1.0));
+            return new NetworkDistanceFunction(network, new AStarLandmarksFactory(300, 1.0, Runtime.getRuntime().availableProcessors()));
         }
     };
 

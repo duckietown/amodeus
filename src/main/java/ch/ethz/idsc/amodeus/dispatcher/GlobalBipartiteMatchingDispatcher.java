@@ -29,7 +29,6 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
 public class GlobalBipartiteMatchingDispatcher extends UniversalDispatcher {
 
     private final int dispatchPeriod;
-    private final DistanceHeuristics distanceHeuristics;
     private Tensor printVals = Tensors.empty();
     private final DistanceFunction distanceFunction;
     private final Network network;
@@ -45,10 +44,7 @@ public class GlobalBipartiteMatchingDispatcher extends UniversalDispatcher {
         super(config, avDispatcherConfig, travelTime, parallelLeastCostPathCalculator, eventsManager);
         SafeConfig safeConfig = SafeConfig.wrap(avDispatcherConfig);
         dispatchPeriod = safeConfig.getInteger("dispatchPeriod", 30);
-
-        distanceHeuristics = DistanceHeuristics.valueOf(safeConfig.getStringStrict("distanceHeuristics").toUpperCase());
-        System.out.println("Using DistanceHeuristics: " + distanceHeuristics.name());
-        this.distanceFunction = distanceHeuristics.getDistanceFunction(network);
+        this.distanceFunction = distanceFunction;
         this.network = network;
     }
 

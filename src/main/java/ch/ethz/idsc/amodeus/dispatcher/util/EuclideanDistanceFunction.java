@@ -1,6 +1,10 @@
 /* amodeus - Copyright (c) 2018, ETH Zurich, Institute for Dynamic Systems and Control */
 package ch.ethz.idsc.amodeus.dispatcher.util;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.core.utils.geometry.CoordUtils;
 
@@ -25,6 +29,11 @@ public class EuclideanDistanceFunction implements DistanceFunction {
     @Override
     public double getDistance(Link from, Link to) {
         return CoordUtils.calcEuclideanDistance(from.getCoord(), to.getCoord());
+    }
+
+    @Override
+    public List<Double> getDistances(List<Pair<RoboTaxi, Link>> pairs) {
+        return pairs.stream().map(p -> getDistance(p.getLeft(), p.getRight())).collect(Collectors.toList());
     }
 
 }
