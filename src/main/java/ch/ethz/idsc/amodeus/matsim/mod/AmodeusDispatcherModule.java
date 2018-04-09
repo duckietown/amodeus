@@ -9,6 +9,7 @@ import ch.ethz.idsc.amodeus.dispatcher.FeedforwardFluidicRebalancingPolicy;
 import ch.ethz.idsc.amodeus.dispatcher.GlobalBipartiteMatchingDispatcher;
 import ch.ethz.idsc.amodeus.dispatcher.GlobalBipartiteMatchingDispatcherTemp;
 import ch.ethz.idsc.amodeus.dispatcher.AdaptiveRealTimeRebalancingPolicy;
+import ch.ethz.idsc.amodeus.dispatcher.AdaptiveRealTimeRebalancingPolicyUpdate;
 import ch.ethz.matsim.av.framework.AVUtils;
 
 public class AmodeusDispatcherModule extends AbstractModule {
@@ -22,11 +23,11 @@ public class AmodeusDispatcherModule extends AbstractModule {
         bind(DemandSupplyBalancingDispatcher.Factory.class);
         AVUtils.bindDispatcherFactory(binder(), DemandSupplyBalancingDispatcher.class.getSimpleName()).to(DemandSupplyBalancingDispatcher.Factory.class);
 
-        bind(GlobalBipartiteMatchingDispatcher.Factory.class);
-        AVUtils.bindDispatcherFactory(binder(), GlobalBipartiteMatchingDispatcher.class.getSimpleName()).to(GlobalBipartiteMatchingDispatcher.Factory.class);
+        //bind(GlobalBipartiteMatchingDispatcher.Factory.class);
+        //AVUtils.bindDispatcherFactory(binder(), GlobalBipartiteMatchingDispatcher.class.getSimpleName()).to(GlobalBipartiteMatchingDispatcher.Factory.class);
         
         bind(GlobalBipartiteMatchingDispatcherTemp.Factory.class);
-        AVUtils.bindDispatcherFactory(binder(), GlobalBipartiteMatchingDispatcherTemp.class.getSimpleName()).to(GlobalBipartiteMatchingDispatcherTemp.Factory.class);
+        AVUtils.bindDispatcherFactory(binder(), GlobalBipartiteMatchingDispatcher.class.getSimpleName()).to(GlobalBipartiteMatchingDispatcherTemp.Factory.class);
 
 
         /** dispatchers for PartitionedDispatcher */
@@ -34,6 +35,9 @@ public class AmodeusDispatcherModule extends AbstractModule {
         bind(AdaptiveRealTimeRebalancingPolicy.Factory.class);
         AVUtils.bindDispatcherFactory(binder(), AdaptiveRealTimeRebalancingPolicy.class.getSimpleName()).to(AdaptiveRealTimeRebalancingPolicy.Factory.class);
 
+        bind(AdaptiveRealTimeRebalancingPolicyUpdate.Factory.class);
+        AVUtils.bindDispatcherFactory(binder(), AdaptiveRealTimeRebalancingPolicyUpdate.class.getSimpleName()).to(AdaptiveRealTimeRebalancingPolicyUpdate.Factory.class);
+        
         bind(FeedforwardFluidicRebalancingPolicy.Factory.class);
         AVUtils.bindDispatcherFactory(binder(), FeedforwardFluidicRebalancingPolicy.class.getSimpleName()).to(FeedforwardFluidicRebalancingPolicy.Factory.class);
 

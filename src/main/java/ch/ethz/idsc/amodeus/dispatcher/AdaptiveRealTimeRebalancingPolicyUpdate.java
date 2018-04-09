@@ -53,7 +53,7 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
  * Pavone, M., Smith, S.L., Frazzoli, E. and Rus, D., 2012. Robotic load balancing for mobility-on-demand systems.
  * The International Journal of Robotics
  * Research, 31(7), pp.839-854. */
-public class AdaptiveRealTimeRebalancingPolicy extends PartitionedDispatcher {
+public class AdaptiveRealTimeRebalancingPolicyUpdate extends PartitionedDispatcher {
     private final int rebalancingPeriod;
     private final int dispatchPeriod;
     private final AbstractVirtualNodeDest virtualNodeDest;
@@ -66,7 +66,7 @@ public class AdaptiveRealTimeRebalancingPolicy extends PartitionedDispatcher {
 
     private final Network network;
 
-    public AdaptiveRealTimeRebalancingPolicy( //
+    public AdaptiveRealTimeRebalancingPolicyUpdate( //
             Config config, AVDispatcherConfig avconfig, //
             AVGeneratorConfig generatorConfig, //
             TravelTime travelTime, //
@@ -113,9 +113,15 @@ public class AdaptiveRealTimeRebalancingPolicy extends PartitionedDispatcher {
                 // calculate desired vehicles per vNode
                 int num_requests = requests.values().stream().mapToInt(List::size).sum();
                 double vi_desired_num = ((numRobotaxi - num_requests) / (double) virtualNetwork.getvNodesCount());
-                int vi_desired_numint = (int) Math.floor(vi_desired_num);
+                int vi_desired_numint = 0; //(int) Math.floor(vi_desired_num);
                 Tensor vi_desiredT = Tensors.vector(i -> RationalScalar.of(vi_desired_numint, 1), virtualNetwork.getvNodesCount());
 
+                Map<VirtualNode<Link>, List<AVRequest>> req = getVirtualNodeRequests();
+                
+                for (Map.Entry<VirtualNode<Link>, List<AVRequest>> entry : req.entrySet()) {
+                    vi_desiredT.set(RealScalar.of(entry.getValue().size()), entry.getKey().getIndex());
+                }
+                
                 // calculate excess vehicles per virtual Node i, where v_i excess = vi_own - c_i
                 // =
                 // v_i + sum_j (v_ji) - c_i
@@ -229,7 +235,7 @@ public class AdaptiveRealTimeRebalancingPolicy extends PartitionedDispatcher {
             AbstractVirtualNodeDest abstractVirtualNodeDest = new RandomVirtualNodeDest();
             AbstractVehicleDestMatcher abstractVehicleDestMatcher = new HungarBiPartVehicleDestMatcher(new EuclideanDistanceFunction());
 
-            return new AdaptiveRealTimeRebalancingPolicy(config, avconfig, generatorConfig, travelTime, router, eventsManager, network, virtualNetwork, abstractVirtualNodeDest,
+            return new AdaptiveRealTimeRebalancingPolicyUpdate(config, avconfig, generatorConfig, travelTime, router, eventsManager, network, virtualNetwork, abstractVirtualNodeDest,
                     abstractVehicleDestMatcher, distanceFunction);
         }
     }

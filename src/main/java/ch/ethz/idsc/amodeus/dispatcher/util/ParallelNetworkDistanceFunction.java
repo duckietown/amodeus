@@ -20,8 +20,6 @@ import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
-import org.matsim.core.network.NetworkUtils;
-import org.matsim.core.network.io.MatsimNetworkReader;
 import org.matsim.core.router.util.LeastCostPathCalculator;
 import org.matsim.core.router.util.LeastCostPathCalculator.Path;
 
@@ -40,16 +38,13 @@ public class ParallelNetworkDistanceFunction implements DistanceFunction {
 
     private double staticCache[][] = null;
 
-    public void loadCache(Network network, String networkPath, String dataPath) {
-        Network vNetwork = NetworkUtils.createNetwork();
-        new MatsimNetworkReader(vNetwork).readFile(networkPath);
-
+    public void loadCache(Network network, String linksPath, String dataPath) {
         log.info("Starting to read data ...");
 
         try {
             List<Id<Link>> linkIds = new LinkedList<>();
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream("distance_links.txt")));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(linksPath)));
 
             String line = null;
             while ((line = reader.readLine()) != null) {
@@ -69,7 +64,7 @@ public class ParallelNetworkDistanceFunction implements DistanceFunction {
 
             DataInputStream stream = new DataInputStream(new FileInputStream(dataPath));
 
-            int numberOfLinks = vNetwork.getLinks().size();
+            int numberOfLinks = linkIds.size();
             long processed = 0;
 
             staticCache = new double[numberOfLinks][numberOfLinks];

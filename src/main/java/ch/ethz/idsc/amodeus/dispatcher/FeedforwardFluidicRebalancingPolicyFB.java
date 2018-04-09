@@ -49,7 +49,7 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
  * Pavone, M., Smith, S.L., Frazzoli, E. and Rus, D., 2012. Robotic load balancing for mobility-on-demand systems.
  * The International Journal of Robotics
  * Research, 31(7), pp.839-854. */
-public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
+public class FeedforwardFluidicRebalancingPolicyFB extends PartitionedDispatcher {
     public final int dispatchPeriod;
     public final int rebalancingPeriod;
     final AbstractVirtualNodeDest virtualNodeDest;
@@ -65,7 +65,7 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
     Tensor rebalanceCount;
     Tensor rebalanceCountInteger;
 
-    public FeedforwardFluidicRebalancingPolicy( //
+    public FeedforwardFluidicRebalancingPolicyFB( //
             Config config, //
             AVDispatcherConfig avconfig, //
             AVGeneratorConfig generatorConfig, //
@@ -198,7 +198,7 @@ public class FeedforwardFluidicRebalancingPolicy extends PartitionedDispatcher {
             AbstractVirtualNodeDest abstractVirtualNodeDest = new RandomVirtualNodeDest();
             AbstractVehicleDestMatcher abstractVehicleDestMatcher = new HungarBiPartVehicleDestMatcher(new EuclideanDistanceFunction());
 
-            return new FeedforwardFluidicRebalancingPolicy(config, avconfig, generatorConfig, travelTime, router, eventsManager, network, virtualNetwork, abstractVirtualNodeDest,
+            return new FeedforwardFluidicRebalancingPolicyFB(config, avconfig, generatorConfig, travelTime, router, eventsManager, network, virtualNetwork, abstractVirtualNodeDest,
                     abstractVehicleDestMatcher, travelDataListener, distanceFunction);
         }
     }

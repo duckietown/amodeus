@@ -14,7 +14,6 @@ import com.google.inject.name.Named;
 
 import ch.ethz.idsc.amodeus.dispatcher.core.RoboTaxi;
 import ch.ethz.idsc.amodeus.dispatcher.core.UniversalDispatcher;
-import ch.ethz.idsc.amodeus.dispatcher.util.BipartiteMatchingUtils;
 import ch.ethz.idsc.amodeus.dispatcher.util.BipartiteMatchingUtilsTemp;
 import ch.ethz.idsc.amodeus.dispatcher.util.DistanceFunction;
 import ch.ethz.idsc.amodeus.dispatcher.util.DistanceHeuristics;
@@ -33,7 +32,6 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
 public class GlobalBipartiteMatchingDispatcherTemp extends UniversalDispatcher {
 
     private final int dispatchPeriod;
-    private final DistanceHeuristics distanceHeuristics;
     private Tensor printVals = Tensors.empty();
     private final DistanceFunction distanceFunction;
     private final Network network;
@@ -44,13 +42,11 @@ public class GlobalBipartiteMatchingDispatcherTemp extends UniversalDispatcher {
             AVDispatcherConfig avDispatcherConfig, //
             TravelTime travelTime, //
             ParallelLeastCostPathCalculator parallelLeastCostPathCalculator, //
-            EventsManager eventsManager) {
+            EventsManager eventsManager, DistanceFunction distanceFunction) {
         super(config, avDispatcherConfig, travelTime, parallelLeastCostPathCalculator, eventsManager);
         SafeConfig safeConfig = SafeConfig.wrap(avDispatcherConfig);
         dispatchPeriod = safeConfig.getInteger("dispatchPeriod", 30);
-        distanceHeuristics = DistanceHeuristics.valueOf(safeConfig.getStringStrict("distanceHeuristics").toUpperCase());
-        System.out.println("Using DistanceHeuristics: " + distanceHeuristics.name());
-        this.distanceFunction = distanceHeuristics.getDistanceFunction(network);
+        this.distanceFunction = distanceFunction;
         this.network = network;
     }
 
@@ -59,13 +55,12 @@ public class GlobalBipartiteMatchingDispatcherTemp extends UniversalDispatcher {
         final long round_now = Math.round(now);
 
         if (round_now % dispatchPeriod == 0) {
-            
-            Map<AVRequest,RoboTaxi> currentPickups = new HashMap<>();
-            for(AVRequest avr : getAVRequests()){
+
+            Map<AVRequest, RoboTaxi> currentPickups = new HashMap<>();
+            for (AVRequest avr : getAVRequests()) {
                 currentPickups.put(avr, getPickupTaxi(avr));
             }
-            
-            
+
             printVals = BipartiteMatchingUtilsTemp.executePickup(this::setRoboTaxiPickup, currentPickups, //
                     getDivertableRoboTaxis(), getAVRequests(), //
                     // new EuclideanDistanceFunction(), network, false);
@@ -101,10 +96,13 @@ public class GlobalBipartiteMatchingDispatcherTemp extends UniversalDispatcher {
         @Inject
         private Config config;
 
+        @Inject
+        private DistanceFunction distanceFunction;
+
         @Override
         public AVDispatcher createDispatcher(AVDispatcherConfig avconfig) {
             return new GlobalBipartiteMatchingDispatcherTemp( //
-                    network, config, avconfig, travelTime, router, eventsManager);
+                    network, config, avconfig, travelTime, router, eventsManager, distanceFunction);
         }
     }
 }
