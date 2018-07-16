@@ -11,9 +11,14 @@ import org.matsim.contrib.dvrp.schedule.Schedule;
 import org.matsim.contrib.dvrp.schedule.Task;
 import org.matsim.contrib.dvrp.util.LinkTimePair;
 
+import ch.ethz.idsc.amodeus.dispatcher.shared.SharedAVCourse;
+import ch.ethz.idsc.amodeus.dispatcher.shared.SharedAVMealType;
+import ch.ethz.idsc.amodeus.dispatcher.shared.SharedAVMenu;
 import ch.ethz.idsc.amodeus.util.math.GlobalAssert;
 import ch.ethz.matsim.av.data.AVVehicle;
 import ch.ethz.matsim.av.schedule.AVDriveTask;
+import ch.ethz.matsim.av.schedule.AVDropoffTask;
+import ch.ethz.matsim.av.schedule.AVPickupTask;
 import ch.ethz.matsim.av.schedule.AVStayTask;
 
 /** RoboTaxi is central classs to be used in all dispatchers. Dispatchers control
@@ -22,10 +27,12 @@ import ch.ethz.matsim.av.schedule.AVStayTask;
  * 
  * @author Claudio Ruch */
 public class RoboTaxi {
+    // Standard Taxi Fields
     static private final Logger logger = Logger.getLogger(RoboTaxi.class);
 
     private final AVVehicle avVehicle;
     private RoboTaxiStatus status;
+    private final RoboTaxiUsageType usageType; // final might be removed if the usage possibility should be changeable by the dispatcher
 
     /** last known location of the RoboTaxi */
     private Link lastKnownLocation;
@@ -35,18 +42,27 @@ public class RoboTaxi {
     private LinkTimePair divertableLinkTime;
     private AbstractDirective directive;
 
+    // Shared Taxi Fields
+    private int onBoardCustomers = 0;
+    private final SharedAVMenu menu = new SharedAVMenu();
+
     /** Standard constructor
      * 
      * @param avVehicle binding association to MATSim AVVehicle object
      * @param linkTimePair
      * @param driveDestination */
-    /* package */ RoboTaxi(AVVehicle avVehicle, LinkTimePair divertableLinkTime, Link driveDestination) {
+    RoboTaxi(AVVehicle avVehicle, LinkTimePair divertableLinkTime, Link driveDestination, RoboTaxiUsageType usageType) {
         this.avVehicle = avVehicle;
         this.divertableLinkTime = divertableLinkTime;
         this.driveDestination = Objects.requireNonNull(driveDestination);
         this.directive = null;
         this.status = RoboTaxiStatus.STAY;
+        this.usageType = usageType;
     }
+
+    // **********************************************
+    // Standard Robo Taxi Functionalities
+    // **********************************************
 
     // ===================================================================================
     // methods to be used by dispatchers, public
@@ -92,6 +108,19 @@ public class RoboTaxi {
         return status;
     }
 
+    /** @return RoboTaxiPlan with RoboTaxiPlan.plans() Navigable Map containing all RoboTaxiPlanEntry
+     *         elements sorted according to begin time */
+    public RoboTaxiPlan getCurrentPlans(double time) {
+        return RoboTaxiPlan.of(getSchedule(), time);
+    }
+
+    /** Gets the capacity of the avVehicle. Now its an Integer and not a double as in Matsim
+     * 
+     * @return */
+    public int getCapacity() {
+        return (int) avVehicle.getCapacity();
+    }
+
     // ===================================================================================
     // methods to be used by Core package
 
@@ -125,9 +154,10 @@ public class RoboTaxi {
         this.status = Objects.requireNonNull(status);
     }
 
-    /** @return true if customer is without a customer */
+    /** @return true if robotaxi is without a customer */
     /* package */ boolean isWithoutCustomer() {
-        return !status.equals(RoboTaxiStatus.DRIVEWITHCUSTOMER);
+        // For now this works with universal dispatcher i.e. single used robotaxis as number of customers is never changed
+        return !status.equals(RoboTaxiStatus.DRIVEWITHCUSTOMER) && onBoardCustomers == 0;
     }
 
     /** @return {@Schedule} of the RoboTaxi, to be used only inside core package,
@@ -142,6 +172,9 @@ public class RoboTaxi {
      *            in the core package, directives will be issued automatically
      *            when setVehiclePickup, setVehicleRebalance are called. */
     /* package */ void assignDirective(AbstractDirective abstractDirective) {
+        if (!isWithoutDirective()) {
+            System.out.println("here");
+        }
         GlobalAssert.that(isWithoutDirective());
         this.directive = abstractDirective;
     }
@@ -149,38 +182,112 @@ public class RoboTaxi {
     /** @return true if RoboTaxi is without an unexecuted directive, to be used
      *         only inside core package */
     /* package */ boolean isWithoutDirective() {
-        if (directive == null)
-            return true;
-        return false;
+        return directive == null;
     }
 
     /** @return true if robotaxi is not driving on the last link of its drive task,
      *         used for filtering purposes as currently the roboTaxis cannot be rerouted
      *         when driving on the last link of their route */
     /* package */ boolean notDrivingOnLastLink() {
-        if (status.equals(RoboTaxiStatus.STAY)) {
+        if (status.equals(RoboTaxiStatus.STAY))
             return true;
-        }
+
         Task avT = getSchedule().getCurrentTask();
 
         if (avT instanceof AVStayTask) {
-            // TODO: For now, this works, but probably needs fixing somewhere upfront /sh, apr 2018
+            // TODO MISC For now, this works, but probably needs fixing somewhere upfront /sh, apr 2018
             logger.warn("RoboTaxiStatus != STAY, but Schedule.getCurrentTask() == AVStayTask; probably needs fixing");
             return true;
         }
 
-        GlobalAssert.that(avT instanceof AVDriveTask);
-        AVDriveTask avDT = (AVDriveTask) avT;
-        if (avDT.getPath().getLinkCount() == 1) {
-            return false;
+        // Added cases when on pickup and dropoff task For shared taxis
+        if (avT instanceof AVDriveTask) {
+            AVDriveTask avDT = (AVDriveTask) avT;
+            return avDT.getPath().getLinkCount() != 1;
         }
-        return true;
+        if (avT instanceof AVPickupTask || avT instanceof AVDropoffTask)
+            return false;
+        throw new IllegalArgumentException("Found Unknown type of AVTASK !!");
     }
 
     /** execute the directive of a RoboTaxi, to be used only inside core package */
     /* package */ void executeDirective() {
         directive.execute();
         directive = null;
+    }
+
+    public RoboTaxiUsageType getUsageType() {
+        return usageType;
+    }
+
+    // **********************************************
+    // Definition Of Divertable depends on usage
+    // **********************************************
+
+    public boolean isDivertable() {
+        if (usageType.equals(RoboTaxiUsageType.SINGLEUSED))
+            return isWithoutDirective() && isWithoutCustomer() && notDrivingOnLastLink();
+        if (usageType.equals(RoboTaxiUsageType.SHARED))
+            return isWithoutDirective() && notDrivingOnLastLink();
+        throw new IllegalArgumentException("Robo Taxi Usage Type is not defined");
+    }
+
+    // **********************************************
+    // Shared Functionalities
+    // **********************************************
+
+    /* package */ void pickupNewCustomerOnBoard() {
+        GlobalAssert.that(canPickupNewCustomer());
+        GlobalAssert.that(menu.getStarterCourse().getPickupOrDropOff().equals(SharedAVMealType.PICKUP));
+        onBoardCustomers++;
+        menu.removeAVCourse(0);
+    }
+
+    public boolean canPickupNewCustomer() {
+        return onBoardCustomers >= 0 && onBoardCustomers < getCapacity();
+    }
+
+    /* package */ void dropOffCustomer() {
+        GlobalAssert.that(onBoardCustomers > 0);
+        GlobalAssert.that(onBoardCustomers <= getCapacity());
+        GlobalAssert.that(menu.getStarterCourse().getPickupOrDropOff().equals(SharedAVMealType.DROPOFF));
+        onBoardCustomers--;
+        menu.removeAVCourse(0);
+    }
+
+    public int getCurrentNumberOfCustomersOnBoard() {
+        return onBoardCustomers;
+    }
+
+    /* package */ boolean hasAtLeastXSeatsFree(int x) {
+        return getCapacity() - onBoardCustomers >= x;
+    }
+
+    public SharedAVMenu getMenu() {
+        return menu;
+    }
+
+    public boolean checkMenuConsistency() {
+        return menu.checkAllCoursesAppearOnlyOnce() && //
+                menu.checkNoPickupAfterDropoffOfSameRequest() && //
+                checkMenuDoesNotPlanToPickUpMoreCustomersThanCapacity();
+    }
+
+    public boolean checkMenuDoesNotPlanToPickUpMoreCustomersThanCapacity() {
+        int futureNumberCustomers = getCurrentNumberOfCustomersOnBoard();
+        for (SharedAVCourse sharedAVCourse : menu.getCourses()) {
+            if (sharedAVCourse.getPickupOrDropOff().equals(SharedAVMealType.PICKUP)) {
+                futureNumberCustomers++;
+            } else if (sharedAVCourse.getPickupOrDropOff().equals(SharedAVMealType.DROPOFF)) {
+                futureNumberCustomers--;
+            } else {
+                throw new IllegalArgumentException("Unknown SharedAVMealType -- please specify it !!!--");
+            }
+            if (futureNumberCustomers > getCapacity()) {
+                return false;
+            }
+        }
+        return true;
     }
 
 }

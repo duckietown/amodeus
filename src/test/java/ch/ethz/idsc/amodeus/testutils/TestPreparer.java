@@ -12,6 +12,7 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 
 import ch.ethz.idsc.amodeus.options.ScenarioOptions;
+import ch.ethz.idsc.amodeus.options.ScenarioOptionsBase;
 import ch.ethz.idsc.amodeus.prep.ConfigCreator;
 import ch.ethz.idsc.amodeus.prep.NetworkPreparer;
 import ch.ethz.idsc.amodeus.prep.PopulationPreparer;
@@ -39,7 +40,7 @@ public class TestPreparer {
         System.out.println("working directory: " + workingDirectory);
 
         // run preparer in simulation working directory
-        ScenarioOptions scenarioOptions = ScenarioOptions.load(workingDirectory);
+        ScenarioOptions scenarioOptions = new ScenarioOptions(workingDirectory, ScenarioOptionsBase.getDefault());
 
         // load Settings from IDSC Options
         File configFile = new File(workingDirectory, scenarioOptions.getPreparerConfigName());
@@ -53,7 +54,7 @@ public class TestPreparer {
 
         // 2) adapt the population to new network
         populationPrepared = scenario.getPopulation();
-        PopulationPreparer.run(networkPrepared, populationPrepared, scenarioOptions, config);
+        PopulationPreparer.run(networkPrepared, populationPrepared, scenarioOptions, config, 10);
 
         // 3) create virtual Network
         VirtualNetworkPreparer.run(networkPrepared, populationPrepared, scenarioOptions);

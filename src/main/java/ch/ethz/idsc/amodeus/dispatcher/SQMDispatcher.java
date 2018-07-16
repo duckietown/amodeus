@@ -23,6 +23,7 @@ import ch.ethz.idsc.amodeus.dispatcher.core.RoboTaxi;
 import ch.ethz.idsc.amodeus.dispatcher.core.RoboTaxiStatus;
 import ch.ethz.idsc.amodeus.net.FastLinkLookup;
 import ch.ethz.idsc.amodeus.net.MatsimStaticDatabase;
+import ch.ethz.idsc.amodeus.net.TensorCoords;
 import ch.ethz.idsc.amodeus.util.math.GlobalAssert;
 import ch.ethz.idsc.amodeus.virtualnetwork.VirtualNetwork;
 import ch.ethz.idsc.amodeus.virtualnetwork.VirtualNetworkGet;
@@ -32,7 +33,7 @@ import ch.ethz.matsim.av.config.AVGeneratorConfig;
 import ch.ethz.matsim.av.dispatcher.AVDispatcher;
 import ch.ethz.matsim.av.framework.AVModule;
 import ch.ethz.matsim.av.passenger.AVRequest;
-import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
+import ch.ethz.matsim.av.router.AVRouter;
 
 /** Implementation of the SQM algorithm (pp. 5625) of "Fundamental Performance
  * Limits and Efficient Polices for Transportation-On-Demand Systems" presented
@@ -58,7 +59,7 @@ public class SQMDispatcher extends PartitionedDispatcher {
             AVDispatcherConfig avconfig, //
             TravelTime travelTime, //
             AVGeneratorConfig generatorConfig, //
-            ParallelLeastCostPathCalculator router, //
+            AVRouter router, //
             EventsManager eventsManager, //
             Network network, //
             VirtualNetwork<Link> virtualNetwork) {
@@ -134,16 +135,16 @@ public class SQMDispatcher extends PartitionedDispatcher {
      * @return nearestLinks {@link ArrayList} of {@link Link}'s which are the
      *         closest links to corresponding virtual nodes
      * @author fluric */
-    private ArrayList<Link> assignNodesToNearestLinks(Collection<VirtualNode<Link>> nodes) {
-        ArrayList<Link> list = new ArrayList<>();
-        Coord coord;
+    private List<Link> assignNodesToNearestLinks(Collection<VirtualNode<Link>> nodes) {
+        List<Link> list = new ArrayList<>();
 
         for (VirtualNode<Link> node : nodes) {
             // get the center coordinate
-            coord = new Coord((double) node.getCoord().Get(0).number(), (double) node.getCoord().Get(1).number());
+
+            Coord coord = TensorCoords.toCoord(node.getCoord());
 
             // find the closest link
-            int index = fastLinkLookup.getLinkFromXY(coord);
+            int index = fastLinkLookup.getLinkIndexFromXY(coord);
             Link closest = MatsimStaticDatabase.INSTANCE.getOsmLink(index).link;
 
             list.add(closest);
@@ -153,10 +154,6 @@ public class SQMDispatcher extends PartitionedDispatcher {
     }
 
     public static class Factory implements AVDispatcherFactory {
-        @Inject
-        @Named(AVModule.AV_MODE)
-        private ParallelLeastCostPathCalculator router;
-
         @Inject
         @Named(AVModule.AV_MODE)
         private TravelTime travelTime;
@@ -172,7 +169,7 @@ public class SQMDispatcher extends PartitionedDispatcher {
         private Config config;
 
         @Override
-        public AVDispatcher createDispatcher(AVDispatcherConfig avconfig) {
+        public AVDispatcher createDispatcher(AVDispatcherConfig avconfig, AVRouter router) {
             AVGeneratorConfig generatorConfig = avconfig.getParent().getGeneratorConfig();
 
             try {

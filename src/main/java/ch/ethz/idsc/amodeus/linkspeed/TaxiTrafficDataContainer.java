@@ -8,9 +8,9 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.core.trafficmonitoring.TravelTimeData;
 
-class TaxiTrafficDataContainer {
+/* package */ class TaxiTrafficDataContainer {
     private final int numSlots;
-    private Map<Id<Link>, TravelTimeData> trafficData = new TreeMap<>();
+    private final Map<Id<Link>, TravelTimeData> trafficData = new TreeMap<>();
 
     public TaxiTrafficDataContainer(int numSlots) {
         this.numSlots = numSlots;
@@ -26,10 +26,10 @@ class TaxiTrafficDataContainer {
         trafficData.put(linkID, ttData);
     }
 
-    // TODO fix this function to something more nice.
+    // TODO MISC fix this function to something more nice.
     public int getTimeSlot(double time) {
         if (time > 0.0) {
-            int slot = (int) (((time / 86400) * numSlots) - 1);
+            int slot = (int) (((time / StaticHelper.DAYLENGTH) * numSlots) - 1);
             if (slot <= numSlots - 1)
                 return slot;
             return numSlots - 1;

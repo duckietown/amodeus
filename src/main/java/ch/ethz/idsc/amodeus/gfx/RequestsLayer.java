@@ -28,12 +28,12 @@ public class RequestsLayer extends ViewerLayer {
 
     private static final Font REQUESTS_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 10);
     // ---
-    private final AmodeusHeatMap requestHeatMap = new AmodeusHeatMapImpl(ColorSchemes.OrangeContour);
-    private final AmodeusHeatMap requestDestMap = new AmodeusHeatMapImpl(ColorSchemes.GreenContour);
+    public final AmodeusHeatMap requestHeatMap = new AmodeusHeatMapImpl(ColorSchemes.OrangeContour);
+    public final AmodeusHeatMap requestDestMap = new AmodeusHeatMapImpl(ColorSchemes.GreenContour);
 
-    private volatile boolean maxWaitTimeInHud = true;
-    private volatile boolean drawNumber = true;
-    private volatile boolean drawRequestDestinations = false;
+    public volatile boolean maxWaitTimeInHud = true;
+    public volatile boolean drawNumber = true;
+    public volatile boolean drawRequestDestinations = false;
 
     private double maxWaitTime;
 
@@ -51,7 +51,10 @@ public class RequestsLayer extends ViewerLayer {
                 // all streets have positive indexes
                 GlobalAssert.that(entry.getKey() >= 0);
                 OsmLink osmLink = amodeusComponent.db.getOsmLink(entry.getKey());
-                final int size = entry.getValue().size();
+                // final int size = entry.getValue().size();
+                Long size = entry.getValue().stream() //
+                        .filter(StaticHelper::isWaiting) //
+                        .collect(Collectors.counting());
                 for (int count = 0; count < size; ++count) {
                     Coord coord = osmLink.getAt(count / (double) size);
                     requestHeatMap.addPoint(coord.getX(), coord.getY());
@@ -108,15 +111,11 @@ public class RequestsLayer extends ViewerLayer {
                     @SuppressWarnings("unused")
                     int index = numRequests;
                     for (RequestContainer rc : entry.getValue()) {
-                        double waitTime = ref.now - rc.submissionTime;
-                        if (waitTime > maxWaitTime)
-                            // System.out.println("Request Nr. " + rc.requestIndex + " waiting Time: " + waitTime);
+                        if (StaticHelper.isWaiting(rc)) {
+                            double waitTime = ref.now - rc.submissionTime;
                             maxWaitTime = Math.max(waitTime, maxWaitTime);
-                        // int piy = y - index;
-                        // int wid = (int) waitTime / 10;
-                        // int left = x - wid / 2;
-                        // graphics.drawLine(left, piy, left + wid, piy);
-                        --index;
+                            --index;
+                        }
                     }
                 }
                 if (drawRequestDestinations) {
@@ -130,7 +129,11 @@ public class RequestsLayer extends ViewerLayer {
                 }
                 if (showNumbers) {
                     graphics.setColor(Color.GRAY);
-                    graphics.drawString("" + numRequests, x, y); // - numRequests
+                    Long numNotPickedUp = entry.getValue().stream() //
+                            .filter(StaticHelper::isWaiting) //
+                            .collect(Collectors.counting());
+                    String printValue = (numNotPickedUp > 0) ? "" + numNotPickedUp : "";
+                    graphics.drawString(printValue, x, y); // - numRequests
                 }
             }
         }

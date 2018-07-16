@@ -24,6 +24,7 @@ import ch.ethz.idsc.amodeus.util.gui.RowPanel;
 import ch.ethz.idsc.amodeus.util.nd.NdCenterInterface;
 import ch.ethz.idsc.amodeus.util.nd.NdCluster;
 import ch.ethz.idsc.amodeus.util.nd.NdEntry;
+import ch.ethz.idsc.amodeus.util.nd.NdMap;
 import ch.ethz.idsc.amodeus.util.nd.NdTreeMap;
 import ch.ethz.idsc.tensor.Tensor;
 import ch.ethz.idsc.tensor.Tensors;
@@ -68,7 +69,7 @@ public class LinkLayer extends ViewerLayer {
         if (drawLinks) {
             List<Street> list = new LinkedList<>();
             Dimension dimension = amodeusComponent.getSize();
-            NdTreeMap<Street> map = new NdTreeMap<>(Array.zeros(2), Tensors.vector(dimension.width, dimension.height), 12, 8);
+            NdMap<Street> map = new NdTreeMap<>(Array.zeros(2), Tensors.vector(dimension.width, dimension.height), 12, 8);
             for (OsmLink osmLink : amodeusComponent.db.getOsmLinks()) {
                 Point p1 = amodeusComponent.getMapPosition(osmLink.getCoordFrom());
                 if (p1 != null) {
@@ -172,7 +173,7 @@ public class LinkLayer extends ViewerLayer {
             public void lazyClicked(MouseEvent mouseEvent) {
                 // System.out.println("here lazy");
                 // amodeusComponent.
-                // TODO extract lat-log coordinate and store and visualize in component
+                // TODO MISC extract lat-log coordinate and store and visualize in component
             }
         };
         LazyMouse lazyMouse = new LazyMouse(lazyMouseListener);
