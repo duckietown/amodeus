@@ -18,7 +18,7 @@ import ch.ethz.idsc.amodeus.util.math.GlobalAssert;
 import ch.ethz.idsc.tensor.Tensor;
 import ch.ethz.idsc.tensor.Tensors;
 
-/** @param <T> the class on which the {@link VirtualNetwork} is defined, e.g., {@link Link}
+/** @param <T> the class on which the {@link VirtualNetwork} is defined, e.g., Link
  * @param <U> */
 public class MultiPolygonsVirtualNetworkCreator<T, U> {
 
@@ -27,12 +27,8 @@ public class MultiPolygonsVirtualNetworkCreator<T, U> {
     public MultiPolygonsVirtualNetworkCreator(MultiPolygons multipolygons, Collection<T> elements, //
             Function<T, Tensor> locationOf, Function<T, String> nameOf, Map<U, HashSet<T>> uElements, //
             Tensor lbounds, Tensor ubounds, boolean completeGraph) {
-        this.virtualNetwork = createVirtualNetwork(multipolygons, //
-                elements, locationOf, nameOf, uElements, lbounds, ubounds, completeGraph);
-    }
-
-    public VirtualNetwork<T> getVirtualNetwork() {
-        return virtualNetwork;
+        this.virtualNetwork = createVirtualNetwork( //
+                multipolygons, elements, locationOf, nameOf, uElements, lbounds, ubounds, completeGraph);
     }
 
     private VirtualNetwork<T> createVirtualNetwork(MultiPolygons multipolygons, //
@@ -79,17 +75,19 @@ public class MultiPolygonsVirtualNetworkCreator<T, U> {
             }
         }
 
-        CreatorUtils.addToVNodes(vNodeTMap, nameOf, virtualNetwork);
+        VirtualNetworkCreatorUtils.addToVNodes(vNodeTMap, nameOf, virtualNetwork);
 
         // create virtualLinks for complete or neighboring graph
         VirtualLinkBuilder.build(virtualNetwork, completeGraph, uElements);
         GlobalAssert.that(VirtualNetworkCheck.virtualLinkConsistencyCheck(virtualNetwork));
 
         // fill information for serialization
-        CreatorUtils.fillSerializationInfo(elements, virtualNetwork, nameOf);
+        VirtualNetworkCreatorUtils.fillSerializationInfo(elements, virtualNetwork, nameOf);
 
         return virtualNetwork;
-
     }
 
+    public VirtualNetwork<T> getVirtualNetwork() {
+        return virtualNetwork;
+    }
 }

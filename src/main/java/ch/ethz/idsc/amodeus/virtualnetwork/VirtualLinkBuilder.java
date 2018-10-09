@@ -9,11 +9,11 @@ import java.util.Map;
 import ch.ethz.idsc.amodeus.util.math.GlobalAssert;
 import ch.ethz.idsc.tensor.red.Norm;
 
-enum VirtualLinkBuilder {
+public enum VirtualLinkBuilder {
     ;
 
-    public static <T, U> void build(VirtualNetwork<T> virtualNetwork, boolean completeGraph, //
-            Map<U, HashSet<T>> uElements) {
+    public static <T, U> void build( //
+            VirtualNetwork<T> virtualNetwork, boolean completeGraph, Map<U, HashSet<T>> uElements) {
         if (completeGraph)
             VirtualLinkBuilder.buildComplete(virtualNetwork);
         else
@@ -24,20 +24,19 @@ enum VirtualLinkBuilder {
      * connected to every other {@link VirtualNode}
      * 
      * @param virtualNetwork */
-    private static <T> void buildComplete(VirtualNetwork<T> _virtualNetwork) {
+    public static <T> void buildComplete(VirtualNetwork<T> _virtualNetwork) {
         VirtualNetworkImpl<T> virtualNetwork = (VirtualNetworkImpl<T>) _virtualNetwork;
         GlobalAssert.that(virtualNetwork.getVirtualLinks().isEmpty());
         int index = 0;
-        for (VirtualNode<T> vNfrom : virtualNetwork.getVirtualNodes()) {
-            for (VirtualNode<T> vNto : virtualNetwork.getVirtualNodes()) {
+        for (VirtualNode<T> vNfrom : virtualNetwork.getVirtualNodes())
+            for (VirtualNode<T> vNto : virtualNetwork.getVirtualNodes())
                 if (!vNfrom.equals(vNto)) {
                     String indexStr = "vLink_" + Integer.toString(index + 1);
                     virtualNetwork.addVirtualLink(indexStr, vNfrom, vNto, //
                             Norm._2.between(vNfrom.getCoord(), vNto.getCoord()).number().doubleValue());
-                    index++;
+                    ++index;
                 }
-            }
-        }
+
     }
 
     /** @param virtualNetwork without {@link VirtualLink}
@@ -47,11 +46,9 @@ enum VirtualLinkBuilder {
         VirtualNetworkImpl<T> virtualNetwork = (VirtualNetworkImpl<T>) _virtualNetwork;
         GenericButterfliesAndRainbows<T, U> gbf = new GenericButterfliesAndRainbows<>();
 
-        for (U u : uElements.keySet()) {
-            for (T t : uElements.get(u)) {
+        for (U u : uElements.keySet())
+            for (T t : uElements.get(u))
                 gbf.add(u, virtualNetwork.getVirtualNode(t));
-            }
-        }
 
         int index = 0;
         System.out.println("there are " + gbf.allPairs().size() + " virtualLinks.");
@@ -61,8 +58,7 @@ enum VirtualLinkBuilder {
             String indexStr = "vLink_" + Integer.toString(index + 1);
             virtualNetwork.addVirtualLink(indexStr, vNfrom, vNto, //
                     Norm._2.between(vNfrom.getCoord(), vNto.getCoord()).number().doubleValue());
-            index++;
-
+            ++index;
         }
     }
 }

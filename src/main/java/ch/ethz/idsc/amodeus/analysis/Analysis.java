@@ -16,6 +16,15 @@ import org.matsim.core.config.ConfigUtils;
 
 import ch.ethz.idsc.amodeus.analysis.element.AnalysisElement;
 import ch.ethz.idsc.amodeus.analysis.element.AnalysisExport;
+import ch.ethz.idsc.amodeus.analysis.element.BinnedWaitingTimesImage;
+import ch.ethz.idsc.amodeus.analysis.element.DistanceDistributionOverDayImage;
+import ch.ethz.idsc.amodeus.analysis.element.DriveTimeHtml;
+import ch.ethz.idsc.amodeus.analysis.element.OccupancyDistanceRatiosImage;
+import ch.ethz.idsc.amodeus.analysis.element.StatusDistributionImage;
+import ch.ethz.idsc.amodeus.analysis.element.TotalJourneyTimeHtml;
+import ch.ethz.idsc.amodeus.analysis.element.TravelTimeExport;
+import ch.ethz.idsc.amodeus.analysis.element.WaitTimeHtml;
+import ch.ethz.idsc.amodeus.analysis.element.WaitingCustomerExport;
 import ch.ethz.idsc.amodeus.analysis.plot.ChartTheme;
 import ch.ethz.idsc.amodeus.analysis.plot.ColorScheme;
 import ch.ethz.idsc.amodeus.analysis.report.AnalysisReport;
@@ -27,12 +36,11 @@ import ch.ethz.idsc.amodeus.analysis.report.ScenarioParametersHtml;
 import ch.ethz.idsc.amodeus.analysis.report.SimulationInformationHtml;
 import ch.ethz.idsc.amodeus.analysis.report.TotalValueAppender;
 import ch.ethz.idsc.amodeus.analysis.report.TotalValueIdentifier;
-import ch.ethz.idsc.amodeus.analysis.report.TotalValueIdentifiersAmodeus;
 import ch.ethz.idsc.amodeus.analysis.report.TotalValues;
-import ch.ethz.idsc.amodeus.analysis.report.WaitingTimesHtml;
+import ch.ethz.idsc.amodeus.analysis.report.TtlValIdent;
 import ch.ethz.idsc.amodeus.data.ReferenceFrame;
 import ch.ethz.idsc.amodeus.matsim.NetworkLoader;
-import ch.ethz.idsc.amodeus.net.MatsimStaticDatabase;
+import ch.ethz.idsc.amodeus.net.MatsimAmodeusDatabase;
 import ch.ethz.idsc.amodeus.net.SimulationObject;
 import ch.ethz.idsc.amodeus.net.StorageSupplier;
 import ch.ethz.idsc.amodeus.net.StorageUtils;
@@ -55,12 +63,13 @@ public class Analysis {
      * @param network
      * @return
      * @throws Exception */
-    public static Analysis setup(Network network) throws Exception {
-        return setup(null, null, null, network);
+    public static Analysis setup(Network network, MatsimAmodeusDatabase db) throws Exception {
+        return setup(null, null, null, network, db);
     }
 
-    public static Analysis setup(File workingDirectory, File configFile, File outputDirectory) throws Exception {
-        return new Analysis(workingDirectory, configFile, outputDirectory, null);
+    public static Analysis setup(File workingDirectory, File configFile, //
+            File outputDirectory, MatsimAmodeusDatabase db) throws Exception {
+        return new Analysis(workingDirectory, configFile, outputDirectory, null, db);
     }
 
     /** returns an Instance of the Analysis Class can be called with any combination
@@ -81,8 +90,9 @@ public class Analysis {
      *            runtime if the Network was already loaded in a previous step (e.g.
      *            Scenario Server)
      * @throws Exception */
-    public static Analysis setup(File workingDirectory, File configFile, File outputDirectory, Network network) throws Exception {
-        return new Analysis(workingDirectory, configFile, outputDirectory, network);
+    public static Analysis setup(File workingDirectory, File configFile, File outputDirectory, //
+            Network network, MatsimAmodeusDatabase db) throws Exception {
+        return new Analysis(workingDirectory, configFile, outputDirectory, network, db);
     }
 
     // List of Analysis Elements which will be loaded
@@ -99,7 +109,7 @@ public class Analysis {
     private final TotalValues totalValues;
     private final ColorScheme colorScheme;
     private final ChartTheme chartTheme;
-    private final Set<String> allAmodeusTotalValueIdentifiers = TotalValueIdentifiersAmodeus.getAllIdentifiers();
+    private final Set<String> allAmodeusTotalValueIdentifiers = TtlValIdent.getAllIdentifiers();
 
     /** Constructor of the Analysis Class can be called with any combination of null
      * and the respective parameter.
@@ -120,7 +130,8 @@ public class Analysis {
      *            Scenario Server)
      * @throws Exception */
 
-    protected Analysis(File workingDirectory, File configFile, File outputDirectory, Network network) throws Exception {
+    protected Analysis(File workingDirectory, File configFile, File outputDirectory, //
+            Network network, MatsimAmodeusDatabase db) throws Exception {
         if (Objects.isNull(workingDirectory) || !workingDirectory.isDirectory())
             workingDirectory = new File("").getCanonicalFile();
         System.out.println("workingDirectory in Analysis: " + workingDirectory.getAbsolutePath());
@@ -151,7 +162,7 @@ public class Analysis {
         dataDirectory.mkdir();
 
         // load coordinate system
-        MatsimStaticDatabase.initializeSingletonInstance(network, referenceFrame);
+        // MatsimStaticDatabase db = MatsimStaticDatabase.initialize(network, referenceFrame);
 
         // load simulation data
         StorageUtils storageUtils = new StorageUtils(outputDirectory);
@@ -161,34 +172,42 @@ public class Analysis {
         System.out.println("Found files: " + size);
         int numVehicles = storageSupplier.getSimulationObject(1).vehicles.size();
 
-        analysisSummary = new AnalysisSummary(numVehicles, size);
+        analysisSummary = new AnalysisSummary(numVehicles, size, db);
 
         // default List of Analysis Elements which will be loaded
         analysisElements.add(analysisSummary.getSimulationInformationElement());
         analysisElements.add(analysisSummary.getStatusDistribution());
-        analysisElements.add(analysisSummary.getWaitingTimes());
         analysisElements.add(analysisSummary.getDistanceElement());
+        analysisElements.add(analysisSummary.getTravelTimeAnalysis());
+        analysisElements.add(analysisSummary.getNumberPassengersAnalysis());
 
-        analysisExports.add(new BinnedWaitingTimesImage());
-        analysisExports.add(new DistanceDistributionOverDayImage());
-        analysisExports.add(new OccupancyDistanceRatiosImage());
-        analysisExports.add(new RequestsPerWaitingTimeImage());
-        analysisExports.add(new StackedDistanceChartImage());
-        analysisExports.add(new StatusDistributionImage());
-        analysisExports.add(new ScenarioParametersExport());
+        analysisExports.add(BinnedWaitingTimesImage.INSTANCE);
+        analysisExports.add(DistanceDistributionOverDayImage.INSTANCE);
+        analysisExports.add(OccupancyDistanceRatiosImage.INSTANCE);
+        analysisExports.add(StackedDistanceChartImage.INSTANCE);
+        analysisExports.add(StatusDistributionImage.INSTANCE);
+        analysisExports.add(ScenarioParametersExport.INSTANCE);
+        analysisExports.add(WaitTimeHistoImage.INSTANCE);
+        analysisExports.add(DriveTimeImages.INSTANCE);
+        analysisExports.add(TotalJourneyTimeImage.INSTANCE);
 
-        analysisExports.add(new DistancesOverDayTable());
-        analysisExports.add(new DistancesRatiosTable());
-        analysisExports.add(new WaitingTimesTable());
-        analysisExports.add(new StatusDistributionTable());
+        analysisExports.add(DistancesOverDayTable.INSTANCE);
+        analysisExports.add(DistancesRatiosTable.INSTANCE);
+        analysisExports.add(WaitingTimesTable.INSTANCE);
+        analysisExports.add(StatusDistributionTable.INSTANCE);
+        analysisExports.add(VirtualNetworkExport.INSTANCE);
+        analysisExports.add(TravelTimeExport.INSTANCE);
+        analysisExports.add(WaitingCustomerExport.INSTANCE);
 
         // default list of analysis reports
         htmlReport = new HtmlReport(configFile, outputDirectory, scenOptions);
-        htmlReport.addHtmlReportElement(new ScenarioParametersHtml());
-        htmlReport.addHtmlReportElement(new SimulationInformationHtml());
-        htmlReport.addHtmlReportElement(new DistanceElementHtml());
-        htmlReport.addHtmlReportElement(new WaitingTimesHtml());
-        htmlReport.addHtmlReportElement(new FleetEfficiencyHtml());
+        htmlReport.addHtmlReportElement(ScenarioParametersHtml.INSTANCE);
+        htmlReport.addHtmlReportElement(SimulationInformationHtml.INSTANCE);
+        htmlReport.addHtmlReportElement(DistanceElementHtml.INSTANCE);
+        htmlReport.addHtmlReportElement(WaitTimeHtml.INSTANCE);
+        htmlReport.addHtmlReportElement(DriveTimeHtml.INSTANCE);
+        htmlReport.addHtmlReportElement(TotalJourneyTimeHtml.INSTANCE);
+        htmlReport.addHtmlReportElement(FleetEfficiencyHtml.INSTANCE);
 
         analysisReports.add(htmlReport);
 
@@ -196,7 +215,7 @@ public class Analysis {
         totalValues.append(analysisSummary.getScenarioParameters());
         totalValues.append(analysisSummary.getSimulationInformationElement());
         totalValues.append(analysisSummary.getStatusDistribution());
-        totalValues.append(analysisSummary.getWaitingTimes());
+        totalValues.append(analysisSummary.getTravelTimeAnalysis());
         totalValues.append(analysisSummary.getDistanceElement());
         analysisReports.add(totalValues);
 
@@ -227,14 +246,13 @@ public class Analysis {
         totalValues.append(totalValueAppender);
     }
 
-    // public void addCostAnalysis(RoboTaxiCostFunction roboTaxiCostFunction) {
-    // FleetCostElement fleetCostElement = new FleetCostElement(roboTaxiCostFunction);
-    // analysisExports.add(fleetCostElement);
-    // totalValues.append(fleetCostElement);
-    // }
+    @Deprecated // use the add functions and run instead! this reduces the amount of code for custom Analysis
+    public AnalysisSummary getAnalysisSummary() {
+        return analysisSummary;
+    }
 
     public void run() throws Exception {
-        // Iteration over all Simulation Objects
+        /** iterate simulation objects */
         for (int index = 0; index < size; ++index) {
             SimulationObject simulationObject = storageSupplier.getSimulationObject(index);
             analysisElements.stream().forEach(analysisElement -> analysisElement.register(simulationObject));
@@ -242,14 +260,13 @@ public class Analysis {
                 System.out.println(simulationObject.now);
         }
 
-        // create plots and carry out other analysis on the data for each Analysis
-        // Element
+        /** this tep includes processing after all time steps are loaded */
         analysisElements.forEach(AnalysisElement::consolidate);
 
         for (AnalysisExport analysisExport : analysisExports)
             analysisExport.summaryTarget(analysisSummary, dataDirectory, colorScheme);
 
-        // Generate the Reports
+        /** generate reports */
         analysisReports.forEach(analysisReport -> analysisReport.generate(analysisSummary));
     }
 }

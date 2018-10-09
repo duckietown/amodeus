@@ -10,6 +10,7 @@ import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.router.util.TravelTime;
 
+import ch.ethz.idsc.amodeus.net.MatsimAmodeusDatabase;
 import ch.ethz.idsc.amodeus.virtualnetwork.VirtualNetwork;
 import ch.ethz.idsc.amodeus.virtualnetwork.VirtualNode;
 import ch.ethz.matsim.av.config.AVDispatcherConfig;
@@ -19,9 +20,7 @@ import ch.ethz.matsim.av.plcpc.ParallelLeastCostPathCalculator;
 /** All dispatchers wich perform rebalancing and use a virtualNetwork dividing the city into zones are derived from {@link PartitionedDispatcher}.
  * A {@link PartitionedDispatcher} always has a {@link VirtualNetwork}
  *
- * @author Nicolo Ormezzano, Lukas Sieber
- *
- * @param <T> */
+ * @author Nicolo Ormezzano, Lukas Sieber */
 public abstract class SharedPartitionedDispatcher extends SharedRebalancingDispatcher {
     protected final VirtualNetwork<Link> virtualNetwork; //
 
@@ -31,8 +30,9 @@ public abstract class SharedPartitionedDispatcher extends SharedRebalancingDispa
             TravelTime travelTime, //
             ParallelLeastCostPathCalculator router, //
             EventsManager eventsManager, //
-            VirtualNetwork<Link> virtualNetwork) {
-        super(config, avconfig, travelTime, router, eventsManager);
+            VirtualNetwork<Link> virtualNetwork, //
+            MatsimAmodeusDatabase db) {
+        super(config, avconfig, travelTime, router, eventsManager, db);
 
         if (virtualNetwork == null) {
             throw new IllegalStateException(

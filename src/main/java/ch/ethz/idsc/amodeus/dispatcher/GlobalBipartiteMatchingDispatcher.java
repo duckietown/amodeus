@@ -9,11 +9,12 @@ import org.matsim.core.router.util.TravelTime;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
+import ch.ethz.idsc.amodeus.dispatcher.core.DispatcherConfig;
 import ch.ethz.idsc.amodeus.dispatcher.core.UniversalDispatcher;
 import ch.ethz.idsc.amodeus.dispatcher.util.BipartiteMatchingUtils;
 import ch.ethz.idsc.amodeus.dispatcher.util.DistanceFunction;
 import ch.ethz.idsc.amodeus.dispatcher.util.DistanceHeuristics;
-import ch.ethz.idsc.amodeus.matsim.SafeConfig;
+import ch.ethz.idsc.amodeus.net.MatsimAmodeusDatabase;
 import ch.ethz.idsc.tensor.Tensor;
 import ch.ethz.idsc.tensor.Tensors;
 import ch.ethz.matsim.av.config.AVDispatcherConfig;
@@ -27,48 +28,40 @@ import ch.ethz.matsim.av.router.AVRouter;
 public class GlobalBipartiteMatchingDispatcher extends UniversalDispatcher {
 
     private final int dispatchPeriod;
-    private final DistanceHeuristics distanceHeuristics;
     private Tensor printVals = Tensors.empty();
     private final DistanceFunction distanceFunction;
     private final Network network;
+    private final BipartiteMatchingUtils bipartiteMatchingUtils;
 
-    private GlobalBipartiteMatchingDispatcher( //
-            Network network, //
-            Config config, //
-            AVDispatcherConfig avDispatcherConfig, //
-            TravelTime travelTime, //
-            AVRouter router, //
-            EventsManager eventsManager) {
-        super(config, avDispatcherConfig, travelTime, router, eventsManager);
-        SafeConfig safeConfig = SafeConfig.wrap(avDispatcherConfig);
-        dispatchPeriod = safeConfig.getInteger("dispatchPeriod", 30);
-        distanceHeuristics = DistanceHeuristics.valueOf(safeConfig.getString("distanceHeuristics", // <- crashes if spelling is wrong
-                DistanceHeuristics.EUCLIDEAN.name()).toUpperCase()); // TODO MISC make EUCLIDEANNONCYCLIC default, also in the other dispatchers
+    private GlobalBipartiteMatchingDispatcher(Network network, Config config, //
+            AVDispatcherConfig avDispatcherConfig, TravelTime travelTime, //
+            AVRouter router, EventsManager eventsManager, //
+            MatsimAmodeusDatabase db) {
+        super(config, avDispatcherConfig, travelTime, router, eventsManager, db);
+        DispatcherConfig dispatcherConfig = DispatcherConfig.wrap(avDispatcherConfig);
+        dispatchPeriod = dispatcherConfig.getDispatchPeriod(30);
+        DistanceHeuristics distanceHeuristics = //
+                dispatcherConfig.getDistanceHeuristics(DistanceHeuristics.EUCLIDEAN);
+        bipartiteMatchingUtils = new BipartiteMatchingUtils(network);
         System.out.println("Using DistanceHeuristics: " + distanceHeuristics.name());
-        this.distanceFunction = distanceHeuristics.getDistanceFunction(network);
+        distanceFunction = distanceHeuristics.getDistanceFunction(network);
         this.network = network;
     }
 
     @Override
     public void redispatch(double now) {
         final long round_now = Math.round(now);
-
         if (round_now % dispatchPeriod == 0) {
-            printVals = BipartiteMatchingUtils.executePickup( //
-                    this, //
-                    getDivertableRoboTaxis(), //
-                    getAVRequests(), //
-                    // new EuclideanDistanceFunction(), network, false);
-                    distanceFunction, network, false);
+            printVals = bipartiteMatchingUtils.executePickup(this, getDivertableRoboTaxis(), //
+                    getAVRequests(), distanceFunction, network);
         }
-
     }
 
     @Override
     protected String getInfoLine() {
         return String.format("%s H=%s", //
                 super.getInfoLine(), //
-                printVals.toString() // This is where Dispatcher@ V... R... MR.. H is printed on console
+                printVals.toString() /** This is where Dispatcher@ V... R... MR.. H is printed on console */
         );
     }
 
@@ -87,10 +80,13 @@ public class GlobalBipartiteMatchingDispatcher extends UniversalDispatcher {
         @Inject
         private Config config;
 
+        @Inject
+        private MatsimAmodeusDatabase db;
+
         @Override
         public AVDispatcher createDispatcher(AVDispatcherConfig avconfig, AVRouter router) {
             return new GlobalBipartiteMatchingDispatcher( //
-                    network, config, avconfig, travelTime, router, eventsManager);
+                    network, config, avconfig, travelTime, router, eventsManager, db);
         }
     }
 }

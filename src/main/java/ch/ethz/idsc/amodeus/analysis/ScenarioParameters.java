@@ -20,7 +20,7 @@ import org.matsim.core.scenario.ScenarioUtils;
 
 import ch.ethz.idsc.amodeus.analysis.report.TotalValueAppender;
 import ch.ethz.idsc.amodeus.analysis.report.TotalValueIdentifier;
-import ch.ethz.idsc.amodeus.analysis.report.TotalValueIdentifiersAmodeus;
+import ch.ethz.idsc.amodeus.analysis.report.TtlValIdent;
 import ch.ethz.idsc.amodeus.matsim.SafeConfig;
 import ch.ethz.idsc.amodeus.options.ScenarioOptions;
 import ch.ethz.idsc.amodeus.options.ScenarioOptionsBase;
@@ -45,13 +45,11 @@ public class ScenarioParameters implements TotalValueAppender, Serializable {
 
     public final String dispatcher;
     public final String distanceHeuristic;
+    public final String virtualNetworkCreator;
     public final String vehicleGenerator;
     public final String networkName;
     public final String user;
     public final String date;
-
-    // total Values for TotalValuesFile
-    private final Map<TotalValueIdentifier, String> totalValues = new HashMap<>();
 
     public ScenarioParameters() {
         File workingDirectory = null;
@@ -86,6 +84,7 @@ public class ScenarioParameters implements TotalValueAppender, Serializable {
 
         distanceHeuristic = safeConfig.getString("distanceHeuristics", UNDEFINED_STRING);
         populationSize = scenario.getPopulation().getPersons().values().size();
+        virtualNetworkCreator = scenOptions.getString(ScenarioOptionsBase.VIRTUALNETWORKCREATORIDENTIFIER);
 
         Network network = scenario.getNetwork();
         if (Objects.isNull(network.getName()))
@@ -116,16 +115,16 @@ public class ScenarioParameters implements TotalValueAppender, Serializable {
 
     @Override
     public Map<TotalValueIdentifier, String> getTotalValues() {
-        totalValues.put(TotalValueIdentifiersAmodeus.DISPATCHER, dispatcher);
-        totalValues.put(TotalValueIdentifiersAmodeus.DISPATCHINGPERIOD, String.valueOf(redispatchPeriod));
-        totalValues.put(TotalValueIdentifiersAmodeus.REBALANCEPERIOD, String.valueOf(rebalancingPeriod));
-        totalValues.put(TotalValueIdentifiersAmodeus.DISTANCEHEURISTIC, String.valueOf(distanceHeuristic));
-        totalValues.put(TotalValueIdentifiersAmodeus.POPULATIONSIZE, String.valueOf(populationSize));
-        totalValues.put(TotalValueIdentifiersAmodeus.VIRTUALNODES, String.valueOf(virtualNodesCount));
-        totalValues.put(TotalValueIdentifiersAmodeus.VEHICLEGENERATOR, vehicleGenerator);
-        totalValues.put(TotalValueIdentifiersAmodeus.TIMESTAMP, date);
-
-        return totalValues;
+        Map<TotalValueIdentifier, String> map = new HashMap<>();
+        map.put(TtlValIdent.DISPATCHER, dispatcher);
+        map.put(TtlValIdent.DISPATCHINGPERIOD, String.valueOf(redispatchPeriod));
+        map.put(TtlValIdent.REBALANCEPERIOD, String.valueOf(rebalancingPeriod));
+        map.put(TtlValIdent.DISTANCEHEURISTIC, String.valueOf(distanceHeuristic));
+        map.put(TtlValIdent.POPULATIONSIZE, String.valueOf(populationSize));
+        map.put(TtlValIdent.VIRTUALNODES, String.valueOf(virtualNodesCount));
+        map.put(TtlValIdent.VEHICLEGENERATOR, vehicleGenerator);
+        map.put(TtlValIdent.TIMESTAMP, date);
+        return map;
     }
 
 }

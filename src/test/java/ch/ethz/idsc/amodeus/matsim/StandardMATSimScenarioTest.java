@@ -1,11 +1,15 @@
 /* amodeus - Copyright (c) 2018, ETH Zurich, Institute for Dynamic Systems and Control */
 package ch.ethz.idsc.amodeus.matsim;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -42,10 +46,24 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 
+import ch.ethz.idsc.amodeus.data.LocationSpec;
+import ch.ethz.idsc.amodeus.data.ReferenceFrame;
+import ch.ethz.idsc.amodeus.matsim.mod.AmodeusDatabaseModule;
 import ch.ethz.idsc.amodeus.matsim.mod.AmodeusDispatcherModule;
 import ch.ethz.idsc.amodeus.matsim.mod.AmodeusModule;
-import ch.ethz.idsc.amodeus.prep.MatsimKMEANSVirtualNetworkCreator;
+import ch.ethz.idsc.amodeus.matsim.mod.AmodeusVehicleGeneratorModule;
+import ch.ethz.idsc.amodeus.net.MatsimAmodeusDatabase;
+import ch.ethz.idsc.amodeus.options.LPOptions;
+import ch.ethz.idsc.amodeus.options.LPOptionsBase;
+import ch.ethz.idsc.amodeus.options.ScenarioOptions;
+import ch.ethz.idsc.amodeus.options.ScenarioOptionsBase;
+import ch.ethz.idsc.amodeus.prep.MatsimKMeansVirtualNetworkCreator;
+import ch.ethz.idsc.amodeus.test.TestFileHandling;
+import ch.ethz.idsc.amodeus.testutils.TestUtils;
 import ch.ethz.idsc.amodeus.traveldata.TravelData;
+import ch.ethz.idsc.amodeus.traveldata.TravelDataCreator;
+import ch.ethz.idsc.amodeus.util.io.MultiFileTools;
+import ch.ethz.idsc.amodeus.util.math.GlobalAssert;
 import ch.ethz.idsc.amodeus.virtualnetwork.VirtualNetwork;
 import ch.ethz.matsim.av.config.AVConfig;
 import ch.ethz.matsim.av.config.AVDispatcherConfig;
@@ -64,7 +82,6 @@ public class StandardMATSimScenarioTest {
         // working properly
 
         // ATTENTION: DriveByDispatcher is not tested, because of long runtime.
-
         return Arrays.asList(new Object[][] { { "SingleHeuristic" }, { "DemandSupplyBalancingDispatcher" }, { "GlobalBipartiteMatchingDispatcher" },
                 // { "AdaptiveRealTimeRebalancingPolicy" }, // TODO TEST @Sebastian, is the input data correct? LP fails sometimes, (depening on order)
                 { "FeedforwardFluidicRebalancingPolicy" } });
@@ -141,16 +158,31 @@ public class StandardMATSimScenarioTest {
         }
     }
 
+    @BeforeClass
+    public static void setUp() throws IOException {
+        // copy scenario data into main directory
+        File scenarioDirectory = new File(TestUtils.getSuperFolder("amodeus"), "resources/testScenario");
+        File workingDirectory = MultiFileTools.getWorkingDirectory();
+        GlobalAssert.that(workingDirectory.exists());
+        TestFileHandling.copyScnearioToMainDirectory(scenarioDirectory.getAbsolutePath(), workingDirectory.getAbsolutePath());
+    }
+
     @Test
-    public void testStandardMATSimScenario() {
+    public void testStandardMATSimScenario() throws IOException {
         /* This test runs a small test scenario with the different dispatchers and makes
          * sure that all 100 generated agents arrive */
-
+        StaticHelper.setup();
         MatsimRandom.reset();
 
         // Set up
         Config config = ConfigUtils.createConfig(new AVConfigGroup(), new DvrpConfigGroup());
         Scenario scenario = TestScenarioGenerator.generateWithAVLegs(config);
+
+        File workingDirectory = MultiFileTools.getWorkingDirectory();
+        ScenarioOptions simOptions = new ScenarioOptions(workingDirectory, ScenarioOptionsBase.getDefault());
+        LocationSpec locationSpec = simOptions.getLocationSpec();
+        ReferenceFrame referenceFrame = locationSpec.referenceFrame();
+        MatsimAmodeusDatabase db = MatsimAmodeusDatabase.initialize(scenario.getNetwork(), referenceFrame);
 
         PlanCalcScoreConfigGroup.ModeParams modeParams = config.planCalcScore().getOrCreateModeParams(AVModule.AV_MODE);
         modeParams.setMonetaryDistanceRate(0.0);
@@ -162,6 +194,8 @@ public class StandardMATSimScenarioTest {
         controler.addOverridingModule(new AVModule());
         controler.addOverridingModule(new AmodeusModule());
         controler.addOverridingModule(new AmodeusDispatcherModule());
+        controler.addOverridingModule(new AmodeusVehicleGeneratorModule());
+        controler.addOverridingModule(new AmodeusDatabaseModule(db));
 
         controler.addOverridingModule(new AbstractModule() {
             @Override
@@ -191,6 +225,27 @@ public class StandardMATSimScenarioTest {
         fixInvalidActivityLocations(scenario.getNetwork(), scenario.getPopulation());
         makeMultimodal(scenario);
 
+        // Config
+
+        AVConfig avConfig = new AVConfig();
+        AVOperatorConfig operatorConfig = avConfig.createOperatorConfig("test");
+        AVGeneratorConfig generatorConfig = operatorConfig.createGeneratorConfig("VehicleToVSGenerator");
+        generatorConfig.setNumberOfVehicles(100);
+        int endTime = (int) config.qsim().getEndTime();
+
+        // Choose a dispatcher
+        AVDispatcherConfig dispatcherConfig = operatorConfig.createDispatcherConfig(dispatcher);
+
+        // Make sure that we do not need the SimulationObjectCompiler
+        dispatcherConfig.addParam("publishPeriod", "-1");
+
+        controler.addOverridingModule(new AbstractModule() {
+            @Override
+            public void install() {
+                bind(AVConfig.class).toInstance(avConfig);
+            }
+        });
+
         // Set up a virtual network for the LPFBDispatcher
 
         controler.addOverridingModule(new AbstractModule() {
@@ -205,37 +260,21 @@ public class StandardMATSimScenarioTest {
                 // Since we have no virtual netowrk saved in the working directory for our test
                 // sceanario, we need to provide a custom one for the LPFB dispatcher
 
-                return MatsimKMEANSVirtualNetworkCreator.createVirtualNetwork(scenario.getPopulation(), network, 2, true);
+                return MatsimKMeansVirtualNetworkCreator.createVirtualNetwork(scenario.getPopulation(), network, 2, true);
             }
 
             @Provides
             @Singleton
-            public TravelData provideTravelData(VirtualNetwork<Link> virtualNetwork, @Named(AVModule.AV_MODE) Network network, Population population) {
+            public TravelData provideTravelData(VirtualNetwork<Link> virtualNetwork, @Named(AVModule.AV_MODE) Network network, Population population) throws Exception {
                 // Same as for the virtual network: For the LPFF dispatcher we need travel
                 // data, which we generate on the fly here.
+                ScenarioOptions scenarioOptions = new ScenarioOptions(MultiFileTools.getWorkingDirectory(), ScenarioOptionsBase.getDefault());
 
-                TravelData travelData = new TravelData(virtualNetwork, network, population, 300);
+                LPOptions lpOptions = new LPOptions(MultiFileTools.getWorkingDirectory(), LPOptionsBase.getDefault());
+                lpOptions.setProperty(LPOptionsBase.LPSOLVER, "timeInvariant");
+                lpOptions.saveAndOverwriteLPOptions();
+                TravelData travelData = TravelDataCreator.create(virtualNetwork, network, population, scenarioOptions, (int) generatorConfig.getNumberOfVehicles(), endTime);
                 return travelData;
-            }
-        });
-
-        // Config
-
-        AVConfig avConfig = new AVConfig();
-        AVOperatorConfig operatorConfig = avConfig.createOperatorConfig("test");
-        AVGeneratorConfig generatorConfig = operatorConfig.createGeneratorConfig("PopulationDensity");
-        generatorConfig.setNumberOfVehicles(100);
-
-        // Choose a dispatcher
-        AVDispatcherConfig dispatcherConfig = operatorConfig.createDispatcherConfig(dispatcher);
-
-        // Make sure that we do not need the SimulationObjectCompiler
-        dispatcherConfig.addParam("publishPeriod", "-1");
-
-        controler.addOverridingModule(new AbstractModule() {
-            @Override
-            public void install() {
-                bind(AVConfig.class).toInstance(avConfig);
             }
         });
 
@@ -262,5 +301,10 @@ public class StandardMATSimScenarioTest {
 
         controler.run();
         Assert.assertEquals(0, analyzer.numberOfDepartures - analyzer.numberOfArrivals);
+    }
+
+    @AfterClass
+    public static void tearDownOnce() throws IOException {
+        TestFileHandling.removeGeneratedFiles();
     }
 }

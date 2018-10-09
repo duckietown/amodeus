@@ -7,10 +7,11 @@ import ch.ethz.idsc.amodeus.dispatcher.AdaptiveRealTimeRebalancingPolicy;
 import ch.ethz.idsc.amodeus.dispatcher.DemandSupplyBalancingDispatcher;
 import ch.ethz.idsc.amodeus.dispatcher.DriveByDispatcher;
 import ch.ethz.idsc.amodeus.dispatcher.FeedforwardFluidicRebalancingPolicy;
+import ch.ethz.idsc.amodeus.dispatcher.FeedforwardFluidicTimeVaryingRebalancingPolicy;
 import ch.ethz.idsc.amodeus.dispatcher.GlobalBipartiteMatchingDispatcher;
 import ch.ethz.idsc.amodeus.dispatcher.SQMDispatcher;
-import ch.ethz.idsc.amodeus.dispatcher.shared.HeuristicSharedDispatcher;
-import ch.ethz.idsc.amodeus.dispatcher.shared.SimpleSharedDispatcher;
+import ch.ethz.idsc.amodeus.dispatcher.shared.NorthPoleSharedDispatcher;
+import ch.ethz.idsc.amodeus.dispatcher.shared.SharedHeuristicDispatcher;
 import ch.ethz.matsim.av.framework.AVUtils;
 
 public class AmodeusDispatcherModule extends AbstractModule {
@@ -35,14 +36,18 @@ public class AmodeusDispatcherModule extends AbstractModule {
         bind(FeedforwardFluidicRebalancingPolicy.Factory.class);
         AVUtils.bindDispatcherFactory(binder(), FeedforwardFluidicRebalancingPolicy.class.getSimpleName()).to(FeedforwardFluidicRebalancingPolicy.Factory.class);
 
+        bind(FeedforwardFluidicTimeVaryingRebalancingPolicy.Factory.class);
+        AVUtils.bindDispatcherFactory(binder(), FeedforwardFluidicTimeVaryingRebalancingPolicy.class.getSimpleName())
+                .to(FeedforwardFluidicTimeVaryingRebalancingPolicy.Factory.class);
+
         bind(SQMDispatcher.Factory.class);
         AVUtils.bindDispatcherFactory(binder(), SQMDispatcher.class.getSimpleName()).to(SQMDispatcher.Factory.class);
 
-        bind(SimpleSharedDispatcher.Factory.class);
-        AVUtils.bindDispatcherFactory(binder(), SimpleSharedDispatcher.class.getSimpleName()).to(SimpleSharedDispatcher.Factory.class);
+        bind(NorthPoleSharedDispatcher.Factory.class);
+        AVUtils.bindDispatcherFactory(binder(), NorthPoleSharedDispatcher.class.getSimpleName()).to(NorthPoleSharedDispatcher.Factory.class);
 
-        bind(HeuristicSharedDispatcher.Factory.class);
-        AVUtils.bindDispatcherFactory(binder(), HeuristicSharedDispatcher.class.getSimpleName()).to(HeuristicSharedDispatcher.Factory.class);
+        bind(SharedHeuristicDispatcher.Factory.class);
+        AVUtils.bindDispatcherFactory(binder(), SharedHeuristicDispatcher.class.getSimpleName()).to(SharedHeuristicDispatcher.Factory.class);
 
     }
 }

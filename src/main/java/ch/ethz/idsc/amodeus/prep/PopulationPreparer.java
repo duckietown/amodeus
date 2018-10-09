@@ -21,8 +21,8 @@ public enum PopulationPreparer {
      * @param config
      * @param seed for random number generator that influences the population filtering
      * @throws Exception */
-    public static void run( //
-            Network network, Population population, ScenarioOptions scenOptions, Config config, long seed) throws Exception {
+    public static void run(Network network, Population population, ScenarioOptions scenOptions, //
+            Config config, long seed) throws Exception {
         System.out.println("++++++++++++++++++++++++ POPULATION PREPARER ++++++++++++++++++++++++++++++++");
         System.out.println("Original population size: " + population.getPersons().values().size());
 
@@ -51,11 +51,5 @@ public enum PopulationPreparer {
             e.printStackTrace();
         }
         System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-    }
-
-    // TODO jan re-introduced this function for now, to maintain backwards compatibility
-    // ... otherwise errors in amod and amodidsc
-    public static void run(Network network, Population population, ScenarioOptions scenOptions, Config config) throws Exception {
-        run(network, population, scenOptions, config, TheApocalypse.DEFAULT_SEED);
     }
 }

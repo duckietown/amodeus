@@ -16,7 +16,7 @@ import javax.swing.JCheckBox;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.network.Link;
 
-import ch.ethz.idsc.amodeus.net.MatsimStaticDatabase;
+import ch.ethz.idsc.amodeus.net.MatsimAmodeusDatabase;
 import ch.ethz.idsc.amodeus.net.SimulationObject;
 import ch.ethz.idsc.amodeus.net.TensorCoords;
 import ch.ethz.idsc.amodeus.util.gui.RowPanel;
@@ -31,11 +31,11 @@ public class VirtualNetworkLayer extends ViewerLayer {
     public static final Color COLOR = new Color(128, 153 / 2, 0, 128);
     // ---
     private VirtualNetwork<Link> virtualNetwork = null;
-    private boolean drawVNodes = true;
-    private boolean drawVLinks = false;
+    public boolean drawVNodes = true;
+    public boolean drawVLinks = false;
     private VirtualNodeGeometry virtualNodeGeometry = null;
-    private VirtualNodeShader virtualNodeShader = VirtualNodeShader.None;
-    private ColorSchemes colorSchemes = ColorSchemes.Jet;
+    public VirtualNodeShader virtualNodeShader = VirtualNodeShader.None;
+    public ColorSchemes colorSchemes = ColorSchemes.Jet;
 
     public void setVirtualNetwork(VirtualNetwork<Link> virtualNetwork) {
         this.virtualNetwork = virtualNetwork;
@@ -136,7 +136,7 @@ public class VirtualNetworkLayer extends ViewerLayer {
             }
         }
         if (drawVLinks) {
-            final MatsimStaticDatabase db = amodeusComponent.db;
+            final MatsimAmodeusDatabase db = amodeusComponent.db;
 
             graphics.setColor(new Color(255, 0, 0, 128));
             graphics.setStroke(new BasicStroke(3));

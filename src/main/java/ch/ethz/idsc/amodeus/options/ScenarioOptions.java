@@ -21,7 +21,7 @@ public class ScenarioOptions {
     }
 
     public ScenarioOptions(File workingDirectory, Properties fallbackDefault) throws IOException {
-        this.properties = StaticHelper.loadOrCreate(workingDirectory, fallbackDefault);
+        this.properties = StaticHelper.loadOrCreateScenarioOptions(workingDirectory, fallbackDefault);
     }
 
     // PROPERTIES FUNCTIONS
@@ -76,7 +76,6 @@ public class ScenarioOptions {
         return getString(ScenarioOptionsBase.CHARTTHEMEIDENTIFIER);
     }
 
-    /** @return non-negative number, careful: may also return 0 */
     public int getdtTravelData() {
         return getInt(ScenarioOptionsBase.DTTRAVELDATAIDENTIFIER);
     }
@@ -102,9 +101,7 @@ public class ScenarioOptions {
     }
 
     public VirtualNetworkCreator getVirtualNetworkCreator() {
-        VirtualNetworkCreators virtualNetworkCreators = VirtualNetworkCreators.valueOf(getString(ScenarioOptionsBase.VIRTUALNETWORKCREATORIDENTIFIER));
-        virtualNetworkCreators.setScenarioOptions(this);
-        return virtualNetworkCreators;
+        return VirtualNetworkCreators.valueOf(getString(ScenarioOptionsBase.VIRTUALNETWORKCREATORIDENTIFIER));
     }
 
     public int getMaxPopulationSize() {

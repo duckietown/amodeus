@@ -1,3 +1,4 @@
+/* amodeus - Copyright (c) 2018, ETH Zurich, Institute for Dynamic Systems and Control */
 package ch.ethz.idsc.amodeus.prep;
 
 import java.io.File;
@@ -23,7 +24,7 @@ import ch.ethz.idsc.tensor.Tensor;
 public enum MatsimShapeFileVirtualNetworkCreator {
     ;
 
-    public static VirtualNetwork<Link> creatVirtualNetwork(Network network, ScenarioOptions scenarioOptions) {
+    public static VirtualNetwork<Link> createVirtualNetwork(Network network, ScenarioOptions scenarioOptions) {
         File shapeFile = scenarioOptions.getShapeFile();
         boolean completeGraph = scenarioOptions.isCompleteGraph();
         GlobalAssert.that(shapeFile.exists());

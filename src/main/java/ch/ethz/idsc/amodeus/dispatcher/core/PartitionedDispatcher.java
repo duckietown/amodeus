@@ -10,6 +10,7 @@ import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.router.util.TravelTime;
 
+import ch.ethz.idsc.amodeus.net.MatsimAmodeusDatabase;
 import ch.ethz.idsc.amodeus.virtualnetwork.VirtualNetwork;
 import ch.ethz.idsc.amodeus.virtualnetwork.VirtualNode;
 import ch.ethz.matsim.av.config.AVDispatcherConfig;
@@ -26,12 +27,13 @@ public abstract class PartitionedDispatcher extends RebalancingDispatcher {
 
     protected PartitionedDispatcher( //
             Config config, //
-            AVDispatcherConfig avconfig, //
+            AVDispatcherConfig avDispatcherConfig, //
             TravelTime travelTime, //
             ParallelLeastCostPathCalculator router, //
             EventsManager eventsManager, //
-            VirtualNetwork<Link> virtualNetwork) {
-        super(config, avconfig, travelTime, router, eventsManager);
+            VirtualNetwork<Link> virtualNetwork, //
+            MatsimAmodeusDatabase db) {
+        super(config, avDispatcherConfig, travelTime, router, eventsManager, db);
 
         if (virtualNetwork == null) {
             throw new IllegalStateException(
@@ -44,6 +46,11 @@ public abstract class PartitionedDispatcher extends RebalancingDispatcher {
     /** @return {@link java.util.Map} where all {@link AVRequest} are listed at the {@link VirtualNode} where their {@link AVRequest.fromLink} is. */
     protected Map<VirtualNode<Link>, List<AVRequest>> getVirtualNodeRequests() {
         return virtualNetwork.binToVirtualNode(getAVRequests(), AVRequest::getFromLink);
+    }
+
+    /** @return {@link java.util.Map} where all {@link AVRequest} are listed at the {@link VirtualNode} where their {@link AVRequest.fromLink} is. */
+    protected Map<VirtualNode<Link>, List<AVRequest>> getVirtualNodeUnassignedRequests() {
+        return virtualNetwork.binToVirtualNode(getUnassignedAVRequests(), AVRequest::getFromLink);
     }
 
     /** @return {@link java.util.Map} where all divertable not rebalancing {@link RoboTaxi} are listed at the {@link VirtualNode} where their {@link Link}
@@ -70,6 +77,12 @@ public abstract class PartitionedDispatcher extends RebalancingDispatcher {
      *         divertableLocation is. */
     protected Map<VirtualNode<Link>, List<RoboTaxi>> getVirtualNodeStayVehicles() {
         return virtualNetwork.binToVirtualNode(getRoboTaxiSubset(RoboTaxiStatus.STAY), RoboTaxi::getDivertableLocation);
+    }
+
+    /** @return {@link java.util.Map} where all divertable {@link RoboTaxi} are listed at the {@link VirtualNode} where their {@link Link}
+     *         divertableLocation is. */
+    protected Map<VirtualNode<Link>, List<RoboTaxi>> getVirtualNodeDivertableRoboTaxis() {
+        return virtualNetwork.binToVirtualNode(getDivertableRoboTaxis(), RoboTaxi::getDivertableLocation);
     }
 
 }

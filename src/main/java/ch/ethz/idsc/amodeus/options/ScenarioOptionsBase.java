@@ -23,18 +23,21 @@ public enum ScenarioOptionsBase {
     static final String LINKSPEEDDATAFILENAME = "linkSpeedDataFileName";
     static final String COLORSCHEMEIDENTIFIER = "colorScheme";
     static final String CHARTTHEMEIDENTIFIER = "chartTheme";
-    static final String COMPLETEGRAPHIDENTIFIER = "completeGraph";
     static final String NETWORKUPDATEDNAMEIDENTIFIER = "NetworkUpdateName";
     static final String POPULATIONUPDATEDNAMEIDENTIFIER = "PopulationUpdateName";
     static final String LOCATIONSPECIDENTIFIER = "LocationSpec";
     static final String SHAPEFILEIDENTIFIER = "shapeFile";
     // ---
+    public static final String COMPLETEGRAPHIDENTIFIER = "completeGraph";
     public static final String POPULATIONCUTTERIDENTIFIER = "populationCutter";
     public static final String VIRTUALNETWORKCREATORIDENTIFIER = "virtualNetworkCreator";
     public static final String WAITFORCLIENTSIDENTIFIER = "waitForClients";
     public static final String NUMVNODESIDENTIFIER = "numVirtualNodes";
     public static final String MAXPOPULATIONSIZEIDENTIFIER = "maxPopulationSize";
     public static final String DTTRAVELDATAIDENTIFIER = "dtTravelData";
+    public static final String LPSOLVER = "LPSolver";
+    public static final String LPWEIGHTQ = "LPWeightQ";
+    public static final String LPWEIGHTR = "LPWeightR";
 
     public static Properties getDefault() {
         Properties properties = new Properties();
